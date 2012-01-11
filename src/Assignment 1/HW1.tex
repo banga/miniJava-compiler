@@ -1,0 +1,50 @@
+\documentclass[a4paper,12pt,titlepage]{article}
+\usepackage{fullpage}
+\usepackage{listings}
+\DeclareFontShape{OT1}{cmtt}{bx}{n}{<5><6><7><8><9><10><10.95><12><14.4><17.28><20.74><24.88>cmttb10}{}
+
+\title{COMP 520: Compilers\\{\bf Problem set 1}}
+\author{\bf Shrey Banga\\banga@cs.unc.edu}
+\date{\today}
+
+\begin{document}
+
+\lstset{
+	tabsize=2,
+	basicstyle=\ttfamily,
+	keywordstyle=\bfseries
+}
+
+\maketitle
+
+\begin{enumerate}
+
+% Question 1
+\item	\texttt{Object o = "abc";}
+	\begin{enumerate} 
+
+	\item \texttt{char c = o.charAt(2);}\\
+	This is not a legal Java statement, as the method \texttt{charAt} is not defined for the \texttt{Object} class to which \texttt{o} belongs.
+
+	\item \texttt{boolean b = o.equals("abc");}\\
+	This is a legal statement as the \texttt{equals} method is defined for the \texttt{Object} class. It returns \texttt{true}, which gets assigned to \texttt{b}.
+
+	\item \texttt{String s = o;}\\
+	This is not a legal Java statement as a variable of type \texttt{String} cannot hold the reference to an instance of the \texttt{Object} class, since \texttt{String} is a subclass of \texttt{Object}. It would have to be explicitly typecast into a \texttt{String} object.
+
+	\item \texttt{char d = ((String) o).charAt(3);}\\
+	This is a legal Java statement, as the object is typecast explicitly into a \texttt{String} object before calling the \texttt{charAt} method on it. However, the index passed to the method is out of the range of the string, causing it to throw a run time exception.
+
+	\end{enumerate}
+
+% Question 2
+\item The following code shows how to access each of the four occurences of \texttt{x}:\\
+	\lstinputlisting[language=Java]{Test.java}
+
+% Question 3
+\item
+	\lstinputlisting[language={[x86masm]Assembler}]{gcd.asm}
+
+\end{enumerate}
+
+\end{document}
