@@ -19,13 +19,13 @@ _main:
 
 gcd:
   cmp eax, ebx
-  je  print       ; while (x != y) {
-  jle else        ;   if(x > y)
-    sub eax, ebx  ;     x = x - y
-    jmp gcd       ;
-else:             ;   else
-    sub ebx, eax  ;     y = y - x
-    jmp gcd       ;}
+  je  print     ; while (x != y) {
+  jle else      ;   if(x > y)
+  sub eax, ebx  ;     x = x - y
+  jmp gcd       ;
+else:           ;   else
+  sub ebx, eax  ;     y = y - x
+  jmp gcd       ;}
 
 print:
   push  eax ; x and y have already been pushed above
