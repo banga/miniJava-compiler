@@ -4,19 +4,24 @@ package miniJava.SyntacticAnalyzer;
  * An enum augmented with extra information such as spelling and source position
  */
 public enum TokenType {
-
-	NUMBER("number"),
-	BINARY_OPERATOR("binary operator"),
-	UNARY_OPERATOR("unary operator"),
-
+	SEMICOLON(";"),
+	COMMA(","),
 	LPAREN("("),
 	RPAREN(")"),
 	LSQUARE("["),
 	RSQUARE("]"),
 	LCURL("{"),
 	RCURL("}"),
-	COMMA(","),
-	SEMICOLON(";"),
+	LANGLE("<"),
+	RANGLE(">"),
+	EQUALTO("="),
+	PLUS("+"),
+	MINUS("-"),
+	ASTERISK("*"),
+	SLASH("/"),
+	PIPE("|"),
+	AMPERSAND("&"),
+	BANG("!"),
 	DOT("."),
 
 	// Keywords
@@ -36,9 +41,15 @@ public enum TokenType {
 	TRUE("true"),
 	FALSE("false"),
 
-	EOT("end of text"); 
+	NUMBER,
+	IDENTIFIER,
+	EOT; 
 
 	public final String spelling;
+
+	TokenType() {
+		this.spelling = null;
+	}
 
 	TokenType(String spelling) {
 		this.spelling = spelling;

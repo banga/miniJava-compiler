@@ -2,20 +2,24 @@ package miniJava.SyntacticAnalyzer;
 
 public class SourcePosition {
 
-  public int start, finish;
+	public int line, column;
 
-  public SourcePosition () {
-    start = 0;
-    finish = 0;
-  }
+	public SourcePosition() {
+		line = 1;
+		column = 1;
+	}
 
-  public SourcePosition (int s, int f) {
-    start = s;
-    finish = f;
-  }
+	public SourcePosition(int line, int column) {
+		this.line = line;
+		this.column = column;
+	}
+	
+	public SourcePosition(SourcePosition position) {
+		this.line = position.line;
+		this.column = position.column;
+	}
 
-  public String toString() {
-    return "(" + start + ", " + finish + ")";
-  }
+	public String toString() {
+		return "line " + line + ", column " + column;
+	}
 }
-
