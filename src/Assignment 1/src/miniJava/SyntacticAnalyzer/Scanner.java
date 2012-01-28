@@ -47,9 +47,9 @@ public class Scanner {
 	}
 
 	/**
-	 * Return the next token in stream
+	 * Returns the next token in stream
 	 * 
-	 * @return Token object
+	 * @return Token
 	 * @throws ScannerException
 	 *             if an unknown column is encountered
 	 */
@@ -128,11 +128,10 @@ public class Scanner {
 	}
 
 	/**
-	 * Reads the next column from stream
+	 * Reads the next character from stream
 	 * 
-	 * @return next column
+	 * @return the next character from input or EOT on end-of-file
 	 * @throws IOException
-	 *             if there is an I/O error or EOF
 	 */
 	private char nextChar() throws IOException {
 		int c = in.read();
