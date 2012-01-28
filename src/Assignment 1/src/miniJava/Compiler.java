@@ -1,23 +1,28 @@
 package miniJava;
 
-import miniJava.SyntacticAnalyzer.Scanner;
-import miniJava.SyntacticAnalyzer.ScannerException;
-import miniJava.SyntacticAnalyzer.Token;
-import miniJava.SyntacticAnalyzer.TokenType;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import miniJava.SyntacticAnalyzer.Parser;
+import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
 public class Compiler {
   public static void main(String[] args) {
-	  Scanner scanner = new Scanner(System.in);
-	  try {
-		  while(true) {
-			  Token token = scanner.nextToken();
-			  System.out.println(token.type);
+	  if(args.length < 1) {
+		  System.out.println("Usage: java miniJava.Compiler <filename>");
+		  System.exit(4);
+	  }
 
-			  if(token.type == TokenType.EOT)
-				  break;
-		  }
-	  } catch(ScannerException e) {
+	  try {
+		  Parser parser = new Parser(new FileInputStream(args[0]));
+		  parser.parseProgram();
+	  } catch(SyntaxErrorException e) {
+		  e.printStackTrace();
 		  System.out.println(e);
+		  System.exit(4);
+	  } catch(IOException e) {
+		  System.out.println("Error opening " + args[0]);
+		  System.exit(4);
 	  }
   }
 }
