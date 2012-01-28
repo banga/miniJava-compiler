@@ -1,5 +1,6 @@
 package miniJava.SyntacticAnalyzer;
 
+@SuppressWarnings("serial")
 public class ScannerException extends Exception {
 	public String currentString = null;
 	public SourcePosition position = null;
