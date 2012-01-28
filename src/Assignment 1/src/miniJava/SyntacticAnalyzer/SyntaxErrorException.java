@@ -2,19 +2,20 @@ package miniJava.SyntacticAnalyzer;
 
 @SuppressWarnings("serial")
 public class SyntaxErrorException extends Exception {
-	public String extra = "unxepected token ";
 	public Token token = null;
+	public static final String ERROR_HEADER = "syntax error: ";
 
 	public SyntaxErrorException(Token token) {
+		super(ERROR_HEADER + token.spelling + " at " + token.position);
 		this.token = token;
 	}
 
-	public SyntaxErrorException(String extra, Token token) {
-		this.extra = extra;
-		this.token = token;
+	public SyntaxErrorException(String message) {
+		super(ERROR_HEADER + message);
 	}
 
-	public String toString() {
-		return "Syntax error: " + extra + " " + token.spelling + ", " + token.position;
+	public SyntaxErrorException(String message, Token token) {
+		super(ERROR_HEADER + message + " " + token.spelling + " at " + token.position);
+		this.token = token;
 	}
 }
