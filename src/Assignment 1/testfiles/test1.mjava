@@ -28,7 +28,7 @@ class PA1Test {
 	}
 
 	void doSomething(int s) {
-		return s + 2;
+		return s + - - ! - 2 * -3;
 	}
 }
 

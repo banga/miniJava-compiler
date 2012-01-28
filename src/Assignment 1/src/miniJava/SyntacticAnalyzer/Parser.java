@@ -20,8 +20,7 @@ public class Parser {
 		try {
 			currentToken = scanner.nextToken();
 		} catch (ScannerException e) {
-			currentToken.spelling = "";
-			throw new SyntaxErrorException(e.getMessage());
+			throw new SyntaxErrorException("unrecognized token ", new Token(e.spelling, e.position));
 		}
 	}
 
@@ -92,10 +91,7 @@ public class Parser {
 			parseDeclarators();
 			expect(TokenType.IDENTIFIER);
 
-			if (currentToken.type == TokenType.SEMICOLON) {
-				// FieldDeclaration
-				consume();
-			} else if (currentToken.type == TokenType.LPAREN) {
+			if (currentToken.type == TokenType.LPAREN) {
 				// MethodDeclaration
 				consume();
 				if (currentToken.type != TokenType.RPAREN)
@@ -114,6 +110,8 @@ public class Parser {
 					}
 				}
 				consume();
+			} else {
+				expect(TokenType.SEMICOLON);
 			}
 		}
 		expect(TokenType.RCURL);
