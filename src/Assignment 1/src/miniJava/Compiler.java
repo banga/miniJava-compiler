@@ -15,9 +15,15 @@ public class Compiler {
 			BufferedReader in = new BufferedReader(new FileReader(fileName));
 			for(int i = 1; i < position.line; i++)
 				in.readLine();
-			System.out.println(in.readLine().replace('\t', ' '));
-			for(int i = 1; i < position.column; i++)
-				System.out.print(' ');
+			String line = in.readLine();
+			System.out.println(line);
+			for(int i = 1; i < position.column; i++) {
+				if(line.charAt(i-1) == '\t') {
+					System.out.print('\t');
+				} else {
+					System.out.print(' ');
+				}
+			}
 			System.out.println('^');
 		} catch (IOException e) {
 		}
