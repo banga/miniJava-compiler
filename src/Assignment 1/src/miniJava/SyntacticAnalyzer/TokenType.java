@@ -1,8 +1,5 @@
 package miniJava.SyntacticAnalyzer;
 
-/**
- * An enum augmented with extra information such as spelling and source position
- */
 public enum TokenType {
 	SEMICOLON(";"),
 	COMMA(","),
