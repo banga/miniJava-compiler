@@ -20,7 +20,8 @@ public class Parser {
 		try {
 			currentToken = scanner.nextToken();
 		} catch (ScannerException e) {
-			throw new SyntaxErrorException("unrecognized token " + e.currentString, currentToken);
+			currentToken.spelling = "";
+			throw new SyntaxErrorException(e.getMessage());
 		}
 	}
 
@@ -226,6 +227,25 @@ public class Parser {
 	}
 
 	/**
+	 * Parses the non-terminal <i>Reference</i>
+	 * 
+	 * <pre>
+	 * Reference = (this | <b>id</b>) ReferenceMember
+	 * ReferenceMember = (. <b>id</b>)*
+	 * </pre>
+	 * 
+	 * @throws SyntaxErrorException
+	 */
+	private void parseReference() throws SyntaxErrorException {
+		if (currentToken.type == TokenType.THIS || currentToken.type == TokenType.IDENTIFIER) {
+			consume();
+			parseReferenceMember();
+		} else {
+			throw new SyntaxErrorException(currentToken);
+		}
+	}
+
+	/**
 	 * Parses the <i>Statement</i> non-terminal
 	 * 
 	 * <pre>
@@ -244,6 +264,7 @@ public class Parser {
 		// Starters(Statement) = {, int, boolean, void, this, <id>, if, while
 		switch (currentToken.type) {
 		case LCURL:
+			consume();
 			while (currentToken.type != TokenType.RCURL)
 				parseStatement();
 			expect(TokenType.RCURL);
@@ -303,25 +324,26 @@ public class Parser {
 				// id id
 				consume();
 
-				switch(currentToken.type) {
+				switch (currentToken.type) {
 				case EQUALTO:
 					// id id = Expression
 					consume();
+					parseExpression();
 					break;
 
 				case LSQUARE:
 					// id id[Expression?] = Expression;
 					consume();
-					if(currentToken.type != TokenType.RSQUARE)
+					if (currentToken.type != TokenType.RSQUARE)
 						parseExpression();
 					expect(TokenType.RSQUARE);
+					expect(TokenType.EQUALTO);
+					parseExpression();
 					break;
 
 				default:
 					throw new SyntaxErrorException(currentToken);
 				}
-				expect(TokenType.EQUALTO);
-				parseExpression();
 				break;
 
 			case LPAREN:
@@ -382,6 +404,7 @@ public class Parser {
 			break;
 
 		case IF:
+			consume();
 			expect(TokenType.LPAREN);
 			parseExpression();
 			expect(TokenType.RPAREN);
@@ -393,6 +416,7 @@ public class Parser {
 			break;
 
 		case WHILE:
+			consume();
 			expect(TokenType.LPAREN);
 			parseExpression();
 			expect(TokenType.RPAREN);
@@ -414,14 +438,143 @@ public class Parser {
 	 *     | <i>unop</i> Expression
 	 *     | Expression <i>binop</i> Expression
 	 *     | ( Expression )
-	 *     | num | true | false
-	 *     | new (id ( ) | int [ Expression ] | id [ Expression ] )
+	 *     | <i>num</i> | <b>true</b> | <b>false</b>
+	 *     | <b>new</b> (id <b>( )</b> | <b>int [</b> Expression <b>]</b> | id <b>[</b> Expression <b>]</b> )
 	 * </pre>
 	 * 
 	 * @throws SyntaxErrorException
 	 */
 	private void parseExpression() throws SyntaxErrorException {
-		expect(TokenType.NUMBER);
+		switch (currentToken.type) {
+
+		case BANG:
+		case MINUS:
+			// unop
+			consume();
+			parseExpression();
+			break;
+
+		case LPAREN:
+			consume();
+			parseExpression();
+			expect(TokenType.RPAREN);
+			break;
+
+		case NUMBER:
+		case TRUE:
+		case FALSE:
+			consume();
+			break;
+
+		case NEW:
+			consume();
+
+			switch (currentToken.type) {
+			case INT:
+				// new int [ Expression ]
+				consume();
+				parseExpression();
+				expect(TokenType.RSQUARE);
+				break;
+
+			case IDENTIFIER:
+				consume();
+				switch (currentToken.type) {
+				case LPAREN:
+					// new id ( )
+					consume();
+					expect(TokenType.RPAREN);
+					break;
+
+				case LSQUARE:
+					// new id [ Expression ]
+					consume();
+					parseExpression();
+					expect(TokenType.RSQUARE);
+					break;
+
+				default:
+					throw new SyntaxErrorException(currentToken);
+				}
+			}
+			break;
+
+		case THIS:
+		case IDENTIFIER:
+			parseReference();
+
+			switch (currentToken.type) {
+			case LSQUARE:
+				// Reference[Expression]
+				consume();
+				parseExpression();
+				expect(TokenType.RSQUARE);
+				break;
+
+			case LPAREN:
+				// Reference(Expression)
+				consume();
+				if (currentToken.type != TokenType.RPAREN)
+					parseArgumentList();
+				expect(TokenType.RPAREN);
+				break;
+
+			default:
+				// Reference
+				break;
+			}
+			break;
+
+		default:
+			throw new SyntaxErrorException(currentToken);
+		}
+
+		// Expression ::= ... | binop Expression
+		while (consumeBinaryOperator(currentToken.type)) {
+			parseExpression();
+		}
+	}
+
+	/**
+	 * Consumes the current and subsequent tokens if they form a binary operator
+	 * 
+	 * @param type
+	 * @return true if a binary operator was found
+	 * @throws SyntaxErrorException
+	 */
+	private boolean consumeBinaryOperator(TokenType type) throws SyntaxErrorException {
+		switch (type) {
+		// Arithmetic
+		case PLUS:
+		case MINUS:
+		case ASTERISK:
+		case SLASH:
+			consume();
+			return true;
+
+		// Logical
+		case AMPERSAND:
+			consume();
+			expect(TokenType.AMPERSAND);
+			return true;
+		case PIPE:
+			consume();
+			expect(TokenType.PIPE);
+			return true;
+
+		// Logical or Relational
+		case BANG:
+		// Relational
+		case LANGLE:
+		case RANGLE:
+		case EQUALTO:
+			consume();
+			if(currentToken.type == TokenType.EQUALTO)
+				consume();
+			return true;
+		}
+
+		return false;
 	}
 
 }

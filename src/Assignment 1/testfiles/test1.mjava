@@ -1,0 +1,38 @@
+// tiny test program for PA1
+/*
+class PA1Test {
+
+   public static void main(String [] args) {
+       int n = 3;
+       n.i = 4;
+       n[4] = 7;
+       m.n[2] = 1;
+       n = 5 + n.m * n * n[n.m[3]];
+   }
+
+   void doSomething(int s) {
+       return s + 2;
+   }
+}
+*/
+
+class Compiler {
+  public static void main(String[] args) {
+	  if(args.length < 1) {
+		  System.exit(4);
+	  }
+
+	  {
+		  Parser parser = new Parser();
+		  parser.parseProgram();
+	  }
+	  {
+		  e.printStackTrace();
+		  System.out.println(e);
+		  System.exit(4);
+	  }
+	  {
+		  System.exit(4);
+	  }
+  }
+}
