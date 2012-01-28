@@ -6,7 +6,7 @@ public class SyntaxErrorException extends Exception {
 	public static final String ERROR_HEADER = "syntax error: ";
 
 	public SyntaxErrorException(Token token) {
-		super(ERROR_HEADER + token.spelling + " at " + token.position);
+		super(ERROR_HEADER + "unexpected token " + token.spelling + " at " + token.position);
 		this.token = token;
 	}
 

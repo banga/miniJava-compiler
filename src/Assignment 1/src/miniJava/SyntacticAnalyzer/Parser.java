@@ -282,6 +282,10 @@ public class Parser {
 
 		case THIS:
 			consume();
+
+			// this.
+			parseReferenceMember();
+
 			switch (currentToken.type) {
 			// this = Expression;
 			case EQUALTO:
@@ -310,6 +314,7 @@ public class Parser {
 				throw new SyntaxErrorException(currentToken);
 			}
 			expect(TokenType.SEMICOLON);
+			break;
 
 		case IDENTIFIER:
 			consume();
