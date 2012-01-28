@@ -36,31 +36,13 @@ public class Token {
 		}
 
 		if (!matched)
-			this.type = TokenType.IDENTIFIER;
+			type = TokenType.IDENTIFIER;
 
 		this.spelling = spelling;
 		this.position = new SourcePosition(position.line, position.column);
 	}
-	//
-	// public boolean isKeyword() {
-	// switch (this.type) {
-	// case CLASS:
-	// case PUBLIC:
-	// case PRIVATE:
-	// case RETURN:
-	// case STATIC:
-	// case INT:
-	// case BOOLEAN:
-	// case VOID:
-	// case THIS:
-	// case IF:
-	// case ELSE:
-	// case WHILE:
-	// case NEW:
-	// case TRUE:
-	// case FALSE:
-	// return true;
-	// }
-	// return false;
-	// }
+	
+	public String toString() {
+		return type + ": " + spelling + " at " + position;
+	}
 }

@@ -2,7 +2,7 @@ package miniJava.SyntacticAnalyzer;
 
 @SuppressWarnings("serial")
 public class SyntaxErrorException extends Exception {
-	public String extra = "at";
+	public String extra = "unxepected token ";
 	public Token token = null;
 
 	public SyntaxErrorException(Token token) {
