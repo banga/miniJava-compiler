@@ -39,7 +39,7 @@ public class Compiler {
 			Parser parser = new Parser(new FileInputStream(args[0]));
 			parser.parseProgram();
 		} catch (SyntaxErrorException e) {
-			//e.printStackTrace();
+			e.printStackTrace();
 			if (e.token != null && e.token.position != null) {
 				printOffendingLine(args[0], e.token.position);
 			}

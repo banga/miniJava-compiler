@@ -25,10 +25,10 @@ public class Parser {
 	}
 
 	/**
-	 * Consumes a token of expected type or throw an exception
+	 * Consumes a token of expected type or throws an exception
 	 * 
 	 * @param type
-	 *            The type of the token that is expected
+	 *            expected token type
 	 * @throws SyntaxErrorException
 	 *             If an unexpected type is found
 	 * @throws ScannerException
@@ -225,7 +225,7 @@ public class Parser {
 	}
 
 	/**
-	 * Parses the non-terminal <i>Reference</i>
+	 * Parses the <i>Reference</i> non-terminal
 	 * 
 	 * <pre>
 	 * Reference = (this | <b>id</b>) ReferenceMember
@@ -268,10 +268,20 @@ public class Parser {
 			expect(TokenType.RCURL);
 			break;
 
-		case INT:
 		case BOOLEAN:
 		case VOID:
 			parseType();
+			expect(TokenType.IDENTIFIER);
+			expect(TokenType.EQUALTO);
+			parseExpression();
+			expect(TokenType.SEMICOLON);
+			break;
+
+		case INT:
+			consume();
+			// int[] id = Expression;
+			if(currentToken.type == TokenType.LSQUARE)
+				expect(TokenType.RSQUARE);
 			expect(TokenType.IDENTIFIER);
 			expect(TokenType.EQUALTO);
 			parseExpression();
@@ -289,6 +299,7 @@ public class Parser {
 			case EQUALTO:
 				consume();
 				parseExpression();
+				expect(TokenType.SEMICOLON);
 				break;
 
 			// this[Expression] = Expression;
@@ -298,6 +309,7 @@ public class Parser {
 				expect(TokenType.RSQUARE);
 				expect(TokenType.EQUALTO);
 				parseExpression();
+				expect(TokenType.SEMICOLON);
 				break;
 
 			// this(ArgumentList?);
@@ -306,12 +318,12 @@ public class Parser {
 				if (currentToken.type != TokenType.RPAREN)
 					parseArgumentList();
 				expect(TokenType.RPAREN);
+				expect(TokenType.SEMICOLON);
 				break;
 
 			default:
 				throw new SyntaxErrorException(currentToken);
 			}
-			expect(TokenType.SEMICOLON);
 			break;
 
 		case IDENTIFIER:
@@ -319,91 +331,86 @@ public class Parser {
 
 			switch (currentToken.type) {
 			case EQUALTO:
+				// id = Expression;
 				consume();
 				parseExpression();
-				break;
-
-			case IDENTIFIER:
-				// id id
-				consume();
-
-				switch (currentToken.type) {
-				case EQUALTO:
-					// id id = Expression
-					consume();
-					parseExpression();
-					break;
-
-				case LSQUARE:
-					// id id[Expression?] = Expression;
-					consume();
-					if (currentToken.type != TokenType.RSQUARE)
-						parseExpression();
-					expect(TokenType.RSQUARE);
-					expect(TokenType.EQUALTO);
-					parseExpression();
-					break;
-
-				default:
-					throw new SyntaxErrorException(currentToken);
-				}
-				break;
-
-			case LPAREN:
-				// id (ArgumentList?)
-				consume();
-				if (currentToken.type != TokenType.RPAREN)
-					parseArgumentList();
-				expect(TokenType.RPAREN);
+				expect(TokenType.SEMICOLON);
 				break;
 
 			case LSQUARE:
-				// id[Expression] = Expression
 				consume();
-				parseExpression();
-				expect(TokenType.RSQUARE);
+
+				if(currentToken.type == TokenType.RSQUARE) {
+					// id[] id = Expression;
+					consume();
+					expect(TokenType.IDENTIFIER);
+				} else {
+					// id[Expression] = Expression;
+					parseExpression();
+					expect(TokenType.RSQUARE);
+				}
 				expect(TokenType.EQUALTO);
 				parseExpression();
+				expect(TokenType.SEMICOLON);
 				break;
 
 			case DOT:
-				// id.
-				parseReferenceMember();
+				parseReferenceMember(); // id(.id)*
 
 				switch (currentToken.type) {
 
 				case LSQUARE:
-					// id.id[Expression] = Expression
+					// id(.id)*[Expression] = Expression;
 					consume();
 					parseExpression();
 					expect(TokenType.RSQUARE);
 					expect(TokenType.EQUALTO);
 					parseExpression();
+					expect(TokenType.SEMICOLON);
 					break;
 
 				case LPAREN:
-					// id.id(ArgumentList?)
+					// id(.id)*(ArgumentList?);
 					consume();
 					if (currentToken.type != TokenType.RPAREN)
 						parseArgumentList();
 					expect(TokenType.RPAREN);
+					expect(TokenType.SEMICOLON);
 					break;
 
 				case EQUALTO:
-					// id.id = Expression
+					// id(.id)* = Expression
 					consume();
 					parseExpression();
+					expect(TokenType.SEMICOLON);
 					break;
 
 				default:
 					throw new SyntaxErrorException(currentToken);
 				}
+				break;
+
+
+			case IDENTIFIER:
+				// id id = Expression;
+				consume();
+				expect(TokenType.EQUALTO);
+				parseExpression();
+				expect(TokenType.SEMICOLON);
+				break;
+
+			case LPAREN:
+				// id (ArgumentList?);
+				consume();
+				if (currentToken.type != TokenType.RPAREN)
+					parseArgumentList();
+				expect(TokenType.RPAREN);
+				expect(TokenType.SEMICOLON);
 				break;
 
 			default:
 				throw new SyntaxErrorException(currentToken);
 			}
-			expect(TokenType.SEMICOLON);
 			break;
 
 		case IF:

@@ -11,7 +11,7 @@ class PA1Test {
 
 	private Array[] do(int a, String b, void c) {
 		this.x[4] = -(this.x[2] + this.z * x.y.z - 20 / 30);
-		a = !b;
+		a_9__99b = !b;
 		c = (a && b || d) && !e;
 		f = x > 2 || y >= 3 || z < x + d <= m(2,3,4);
 		boolean k = true || false;
@@ -24,6 +24,7 @@ class PA1Test {
 		m.n[2] = 1;
 		n = 5 + n.m * n * n[n.m[3]];
 		while(true) {
+			String[] n = new String[10];
 		}
 	}
 
