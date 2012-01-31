@@ -1,6 +1,8 @@
 package miniJava.SyntacticAnalyzer;
 
-@SuppressWarnings("serial")
+/**
+ * Indicates an error during scanning
+ */
 public class SyntaxErrorException extends Exception {
 	public Token token = null;
 	public static final String ERROR_HEADER = "syntax error: ";

@@ -359,6 +359,13 @@ public class Parser {
 
 				switch (currentToken.type) {
 
+				case EQUALTO:
+					// id(.id)* = Expression
+					consume();
+					parseExpression();
+					expect(TokenType.SEMICOLON);
+					break;
+
 				case LSQUARE:
 					// id(.id)*[Expression] = Expression;
 					consume();
@@ -375,13 +382,6 @@ public class Parser {
 					if (currentToken.type != TokenType.RPAREN)
 						parseArgumentList();
 					expect(TokenType.RPAREN);
-					expect(TokenType.SEMICOLON);
-					break;
-
-				case EQUALTO:
-					// id(.id)* = Expression
-					consume();
-					parseExpression();
 					expect(TokenType.SEMICOLON);
 					break;
 
