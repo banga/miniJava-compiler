@@ -1,3 +1,7 @@
+"""
+  This file contains two classes: NFA and Parser, which together can be used
+  to do regular expression matching.
+"""
 import sys
 
 """
