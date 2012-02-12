@@ -20,7 +20,8 @@ public class Parser {
 		try {
 			currentToken = scanner.nextToken();
 		} catch (ScannerException e) {
-			throw new SyntaxErrorException("unrecognized token ", new Token(e.spelling, e.position));
+			//throw new SyntaxErrorException("unrecognized token ", new Token(e.spelling, e.position));
+			throw new SyntaxErrorException(e.getMessage());//, new Token(e.spelling, e.position));
 		}
 	}
 
@@ -280,8 +281,10 @@ public class Parser {
 		case INT:
 			consume();
 			// int[] id = Expression;
-			if(currentToken.type == TokenType.LSQUARE)
+			if(currentToken.type == TokenType.LSQUARE) {
+				consume();
 				expect(TokenType.RSQUARE);
+			}
 			expect(TokenType.IDENTIFIER);
 			expect(TokenType.EQUALTO);
 			parseExpression();
@@ -483,6 +486,7 @@ public class Parser {
 			case INT:
 				// new int [ Expression ]
 				consume();
+				expect(TokenType.LSQUARE);
 				parseExpression();
 				expect(TokenType.RSQUARE);
 				break;
@@ -559,28 +563,17 @@ public class Parser {
 		case MINUS:
 		case ASTERISK:
 		case SLASH:
-			consume();
-			return true;
-
 		// Logical
-		case AMPERSAND:
-			consume();
-			expect(TokenType.AMPERSAND);
-			return true;
-		case PIPE:
-			consume();
-			expect(TokenType.PIPE);
-			return true;
-
-		// Logical or Relational
-		case BANG:
+		case AMPERSAND_AMPERSAND:
+		case PIPE_PIPE:
 		// Relational
 		case LANGLE:
 		case RANGLE:
-		case EQUALTO:
+		case EQUALTO_EQUALTO:
+		case LANGLE_EQUALTO:
+		case RANGLE_EQUALTO:
+		case BANG_EQUALTO:
 			consume();
-			if(currentToken.type == TokenType.EQUALTO)
-				consume();
 			return true;
 		}
 

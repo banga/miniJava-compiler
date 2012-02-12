@@ -69,18 +69,35 @@ public class Scanner {
 			case ']':
 			case '{':
 			case '}':
-			case '<':
-			case '>':
-			case '=':
 			case '+':
 			case '-':
 			case '*':
-			case '|':
-			case '&':
-			case '!':
 				Token token = new Token(Character.toString(currentChar), position);
 				nextChar();
 				return token;
+
+			case '|':
+				nextChar();
+				expect('|');
+				return new Token("||", position);
+
+			case '&':
+				nextChar();
+				expect('&');
+				return new Token("&&", position);
+
+			case '<':
+			case '>':
+			case '=':
+			case '!':
+				String spelling = Character.toString(currentChar);
+				nextChar();
+				// Account for >=, <=, == and !=
+				if(currentChar == '=') {
+					spelling = spelling + currentChar;
+					nextChar();
+				}
+				return new Token(spelling, position);
 
 			case '/':
 				nextChar();
@@ -89,6 +106,7 @@ public class Scanner {
 					skipLine();
 					return nextToken();
 				} else if (currentChar == '*') {
+					nextChar();
 					skipMultiLineComment();
 					return nextToken();
 				}
@@ -125,6 +143,19 @@ public class Scanner {
 		} catch (IOException e) {
 			return new Token(TokenType.EOT, "", position);
 		}
+	}
+
+	/**
+	 * Consumes expected character if found
+	 * 
+	 * @param expectedChar
+	 * @throws ScannerException if expected character is not found
+	 * @throws IOException
+	 */
+	private void expect(char expectedChar) throws ScannerException, IOException {
+		if(currentChar != expectedChar)
+			throw new ScannerException(Character.toString(currentChar), position, "Expected " + expectedChar);
+		nextChar();
 	}
 
 	/**
