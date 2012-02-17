@@ -20,8 +20,11 @@ public class Parser {
 		try {
 			currentToken = scanner.nextToken();
 		} catch (ScannerException e) {
-			//throw new SyntaxErrorException("unrecognized token ", new Token(e.spelling, e.position));
-			throw new SyntaxErrorException(e.getMessage());//, new Token(e.spelling, e.position));
+			// throw new SyntaxErrorException("unrecognized token ", new
+			// Token(e.spelling, e.position));
+			throw new SyntaxErrorException(e.getMessage());// , new
+															// Token(e.spelling,
+															// e.position));
 		}
 	}
 
@@ -102,15 +105,16 @@ public class Parser {
 				// Method body
 				expect(TokenType.LCURL);
 				while (currentToken.type != TokenType.RCURL) {
-					while (currentToken.type != TokenType.RETURN && currentToken.type != TokenType.RCURL)
-						parseStatement();
 					if (currentToken.type == TokenType.RETURN) {
 						consume();
 						parseExpression();
 						expect(TokenType.SEMICOLON);
+						break;
+					} else {
+						parseStatement();
 					}
 				}
-				consume();
+				expect(TokenType.RCURL);
 			} else {
 				expect(TokenType.SEMICOLON);
 			}
@@ -281,7 +285,7 @@ public class Parser {
 		case INT:
 			consume();
 			// int[] id = Expression;
-			if(currentToken.type == TokenType.LSQUARE) {
+			if (currentToken.type == TokenType.LSQUARE) {
 				consume();
 				expect(TokenType.RSQUARE);
 			}
@@ -343,7 +347,7 @@ public class Parser {
 			case LSQUARE:
 				consume();
 
-				if(currentToken.type == TokenType.RSQUARE) {
+				if (currentToken.type == TokenType.RSQUARE) {
 					// id[] id = Expression;
 					consume();
 					expect(TokenType.IDENTIFIER);
@@ -392,7 +396,6 @@ public class Parser {
 					throw new SyntaxErrorException(currentToken);
 				}
 				break;
-
 
 			case IDENTIFIER:
 				// id id = Expression;
@@ -445,40 +448,121 @@ public class Parser {
 	 * Parses the <i>Expression</i> non-terminal
 	 * 
 	 * <pre>
-	 * Expression ::=
-	 *     Reference ( <b>[</b> Expression <b>]</b> )?
-	 *     | Reference <b>(</b> ArgumentList? <b>)</b>
-	 *     | <i>unop</i> Expression
-	 *     | Expression <i>binop</i> Expression
-	 *     | ( Expression )
-	 *     | <i>num</i> | <b>true</b> | <b>false</b>
-	 *     | <b>new</b> (id <b>( )</b> | <b>int [</b> Expression <b>]</b> | id <b>[</b> Expression <b>]</b> )
+	 * Expression ::=  Conjunction ( <b>||</b> Conjunction )*
 	 * </pre>
 	 * 
 	 * @throws SyntaxErrorException
 	 */
 	private void parseExpression() throws SyntaxErrorException {
+		parseConjunction();
+		while (currentToken.type == TokenType.PIPE_PIPE) {
+			consume();
+			parseConjunction();
+		}
+	}
+
+	/**
+	 * Parses the <i>Conjunction</i> non-terminal
+	 * 
+	 * <pre>
+	 * Conjunction ::= Equality ( <b>&&</b> Equality )*
+	 * </pre>
+	 * 
+	 * @throws SyntaxErrorException
+	 */
+	private void parseConjunction() throws SyntaxErrorException {
+		parseEquality();
+		while (currentToken.type == TokenType.AMPERSAND_AMPERSAND) {
+			consume();
+			parseEquality();
+		}
+	}
+
+	/**
+	 * Parses the <i>Equality</i> non-terminal
+	 * 
+	 * <pre>
+	 * Equality ::= Relational ( ( <b>==</b> | <b>!=</b> ) Relational )*
+	 * </pre>
+	 * 
+	 * @throws SyntaxErrorException
+	 */
+	private void parseEquality() throws SyntaxErrorException {
+		parseRelational();
+		while (currentToken.type == TokenType.EQUALTO_EQUALTO || currentToken.type == TokenType.BANG_EQUALTO) {
+			consume();
+			parseRelational();
+		}
+	}
+
+	/**
+	 * Parses the <i>Relational</i> non-terminal
+	 * 
+	 * <pre>
+	 * Relational ::= Additive ( ( <b>&lt;=</b> | <b>&lt;</b> | <b>&gt;</b> | <b>&gt;=</b> ) Additive )*
+	 * </pre>
+	 * 
+	 * @throws SyntaxErrorException
+	 */
+	private void parseRelational() throws SyntaxErrorException {
+		parseAdditive();
+		while (currentToken.type == TokenType.LANGLE_EQUALTO || currentToken.type == TokenType.LANGLE
+				|| currentToken.type == TokenType.RANGLE || currentToken.type == TokenType.RANGLE_EQUALTO) {
+			consume();
+			parseAdditive();
+		}
+	}
+
+	/**
+	 * Parses the <i>Additive</i> non-terminal
+	 * 
+	 * <pre>
+	 * Additive ::= Multiplicative ( ( <b>+</b> | <b>&minus;</b> ) Multiplicative )*
+	 * </pre>
+	 * 
+	 * @throws SyntaxErrorException
+	 */
+	private void parseAdditive() throws SyntaxErrorException {
+		parseMultiplicative();
+		while (currentToken.type == TokenType.PLUS || currentToken.type == TokenType.MINUS) {
+			consume();
+			parseMultiplicative();
+		}
+	}
+
+	/**
+	 * Parses the <i>Multiplicative</i> non-terminal
+	 * 
+	 * <pre>
+	 * Multiplicative ::= Term ( ( <b>*</b> | <b>/</b> ) Term )*
+	 * </pre>
+	 * 
+	 * @throws SyntaxErrorException
+	 */
+	private void parseMultiplicative() throws SyntaxErrorException {
+		parseTerm();
+		while (currentToken.type == TokenType.ASTERISK || currentToken.type == TokenType.SLASH) {
+			consume();
+			parseTerm();
+		}
+	}
+
+	/**
+	 * Parses the <i>Term</i> non-terminal
+	 * 
+	 * <pre>
+	 * Term ::= <b>(</b> Expression <b>)</b> 
+	 *       | ( <b>&minus;</b> | <b>!</b> ) Expression 
+	 *       | <b>num</b> | <b>true</b> | <b>false</b>
+	 *       | Reference ( <b>[</b> Expression <b>]</b> )?
+	 *       | Reference <b>(</b> ArgumentList? <b>)</b>
+	 *       | <b>new</b> (id <b>( )</b> | <b>int [</b> Expression <b>]</b> | id <b>[</b> Expression <b>]</b> )
+	 * </pre>
+	 * 
+	 * @throws SyntaxErrorException
+	 */
+	private void parseTerm() throws SyntaxErrorException {
 		switch (currentToken.type) {
-
-		case BANG:
-		case MINUS:
-			// unop
-			consume();
-			parseExpression();
-			break;
-
-		case LPAREN:
-			consume();
-			parseExpression();
-			expect(TokenType.RPAREN);
-			break;
-
-		case NUMBER:
-		case TRUE:
-		case FALSE:
-			consume();
-			break;
-
 		case NEW:
 			consume();
 
@@ -539,45 +623,28 @@ public class Parser {
 			}
 			break;
 
+		case NUMBER:
+		case TRUE:
+		case FALSE:
+			consume();
+			return;
+
+		case MINUS:
+		case BANG:
+			// ( - | ! ) Expression
+			consume();
+			parseExpression();
+			return;
+
+		case LPAREN:
+			// ( Expression )
+			consume();
+			parseExpression();
+			expect(TokenType.RPAREN);
+			return;
+
 		default:
 			throw new SyntaxErrorException(currentToken);
 		}
-
-		// Expression ::= ... | binop Expression
-		while (consumeBinaryOperator(currentToken.type)) {
-			parseExpression();
-		}
 	}
-
-	/**
-	 * Consumes the current and subsequent tokens if they form a binary operator
-	 * 
-	 * @param type
-	 * @return true if a binary operator was found
-	 * @throws SyntaxErrorException
-	 */
-	private boolean consumeBinaryOperator(TokenType type) throws SyntaxErrorException {
-		switch (type) {
-		// Arithmetic
-		case PLUS:
-		case MINUS:
-		case ASTERISK:
-		case SLASH:
-		// Logical
-		case AMPERSAND_AMPERSAND:
-		case PIPE_PIPE:
-		// Relational
-		case LANGLE:
-		case RANGLE:
-		case EQUALTO_EQUALTO:
-		case LANGLE_EQUALTO:
-		case RANGLE_EQUALTO:
-		case BANG_EQUALTO:
-			consume();
-			return true;
-		}
-
-		return false;
-	}
-
 }

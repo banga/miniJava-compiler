@@ -70,11 +70,16 @@ public class Scanner {
 			case '{':
 			case '}':
 			case '+':
-			case '-':
 			case '*':
 				Token token = new Token(Character.toString(currentChar), position);
 				nextChar();
 				return token;
+
+			case '-':
+				nextChar();
+				if(currentChar == '-')
+					throw new ScannerException("--", position, "-- is not supported");
+				return new Token("-", position);
 
 			case '|':
 				nextChar();
