@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 
+import miniJava.AbstractSyntaxTrees.AST;
+import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
@@ -37,7 +39,9 @@ public class Compiler {
 
 		try {
 			Parser parser = new Parser(new FileInputStream(args[0]));
-			parser.parseProgram();
+			AST ast = parser.parseProgram();
+			ASTDisplay display = new ASTDisplay();
+			display.showTree(ast);
 		} catch (SyntaxErrorException e) {
 			//e.printStackTrace();
 			if (e.token != null && e.token.position != null) {

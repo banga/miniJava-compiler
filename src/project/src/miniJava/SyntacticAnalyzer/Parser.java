@@ -1,6 +1,49 @@
 package miniJava.SyntacticAnalyzer;
 
 import java.io.InputStream;
+import java.util.Stack;
+
+import miniJava.AbstractSyntaxTrees.ArrayType;
+import miniJava.AbstractSyntaxTrees.AssignStmt;
+import miniJava.AbstractSyntaxTrees.BaseType;
+import miniJava.AbstractSyntaxTrees.BinaryExpr;
+import miniJava.AbstractSyntaxTrees.BlockStmt;
+import miniJava.AbstractSyntaxTrees.BooleanLiteral;
+import miniJava.AbstractSyntaxTrees.CallExpr;
+import miniJava.AbstractSyntaxTrees.CallStmt;
+import miniJava.AbstractSyntaxTrees.ClassDecl;
+import miniJava.AbstractSyntaxTrees.ClassDeclList;
+import miniJava.AbstractSyntaxTrees.ClassType;
+import miniJava.AbstractSyntaxTrees.ExprList;
+import miniJava.AbstractSyntaxTrees.Expression;
+import miniJava.AbstractSyntaxTrees.FieldDecl;
+import miniJava.AbstractSyntaxTrees.FieldDeclList;
+import miniJava.AbstractSyntaxTrees.Identifier;
+import miniJava.AbstractSyntaxTrees.IdentifierList;
+import miniJava.AbstractSyntaxTrees.IfStmt;
+import miniJava.AbstractSyntaxTrees.IndexedRef;
+import miniJava.AbstractSyntaxTrees.IntLiteral;
+import miniJava.AbstractSyntaxTrees.Literal;
+import miniJava.AbstractSyntaxTrees.LiteralExpr;
+import miniJava.AbstractSyntaxTrees.MemberDecl;
+import miniJava.AbstractSyntaxTrees.MethodDecl;
+import miniJava.AbstractSyntaxTrees.MethodDeclList;
+import miniJava.AbstractSyntaxTrees.NewArrayExpr;
+import miniJava.AbstractSyntaxTrees.NewObjectExpr;
+import miniJava.AbstractSyntaxTrees.Operator;
+import miniJava.AbstractSyntaxTrees.ParameterDecl;
+import miniJava.AbstractSyntaxTrees.ParameterDeclList;
+import miniJava.AbstractSyntaxTrees.QualifiedRef;
+import miniJava.AbstractSyntaxTrees.RefExpr;
+import miniJava.AbstractSyntaxTrees.Reference;
+import miniJava.AbstractSyntaxTrees.Statement;
+import miniJava.AbstractSyntaxTrees.StatementList;
+import miniJava.AbstractSyntaxTrees.Type;
+import miniJava.AbstractSyntaxTrees.TypeKind;
+import miniJava.AbstractSyntaxTrees.UnaryExpr;
+import miniJava.AbstractSyntaxTrees.VarDecl;
+import miniJava.AbstractSyntaxTrees.VarDeclStmt;
+import miniJava.AbstractSyntaxTrees.WhileStmt;
 
 public class Parser {
 	private Scanner scanner;
@@ -59,11 +102,17 @@ public class Parser {
 	 * 
 	 * @throws ScannerException
 	 */
-	public void parseProgram() throws SyntaxErrorException {
+	public miniJava.AbstractSyntaxTrees.Package parseProgram() throws SyntaxErrorException {
+		miniJava.AbstractSyntaxTrees.Package package1 = null;
 		consume();
-
-		while (currentToken.type != TokenType.EOT)
-			parseClassDeclaration();
+		SourcePosition packagePos = currentToken.position;
+		ClassDeclList packageClassList = new ClassDeclList();
+		while (currentToken.type != TokenType.EOT) {
+			ClassDecl classDecl1 = parseClassDeclaration();
+			packageClassList.add(classDecl1);
+		}
+		package1 = new miniJava.AbstractSyntaxTrees.Package(packageClassList, packagePos);
+		return package1;
 	}
 
 	/**
@@ -86,40 +135,53 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseClassDeclaration() throws SyntaxErrorException {
+	private ClassDecl parseClassDeclaration() throws SyntaxErrorException {
+		SourcePosition classPos = currentToken.position;
 		expect(TokenType.CLASS);
+		Identifier classId = new Identifier(currentToken.spelling, currentToken.position);
 		expect(TokenType.IDENTIFIER);
 		expect(TokenType.LCURL);
+		FieldDeclList fieldList = new FieldDeclList();
+		MethodDeclList methodList = new MethodDeclList();
+
 		while (currentToken.type != TokenType.RCURL) {
 			// Left factorize the Declarators and id
-			parseDeclarators();
+			MemberDecl memberDecl = parseDeclarators();
 			expect(TokenType.IDENTIFIER);
 
 			if (currentToken.type == TokenType.LPAREN) {
 				// MethodDeclaration
 				consume();
+				ParameterDeclList pList = new ParameterDeclList();
 				if (currentToken.type != TokenType.RPAREN)
-					parseParameterList();
+					pList = parseParameterList();
 				expect(TokenType.RPAREN);
 
 				// Method body
 				expect(TokenType.LCURL);
+				StatementList methodStmtList1 = new StatementList();
+				Expression returnExpr = null;
 				while (currentToken.type != TokenType.RCURL) {
 					if (currentToken.type == TokenType.RETURN) {
 						consume();
-						parseExpression();
+						returnExpr = parseExpression();
 						expect(TokenType.SEMICOLON);
 						break;
 					} else {
-						parseStatement();
+						methodStmtList1.add(parseStatement());
 					}
 				}
 				expect(TokenType.RCURL);
+				MethodDecl methodDecl = new MethodDecl(memberDecl, pList, methodStmtList1, returnExpr, memberDecl.posn);
+				methodList.add(methodDecl);
 			} else {
+				FieldDecl fieldDecl = new FieldDecl(memberDecl, memberDecl.posn);
+				fieldList.add(fieldDecl);
 				expect(TokenType.SEMICOLON);
 			}
 		}
 		expect(TokenType.RCURL);
+		return new ClassDecl(classId, fieldList, methodList, classPos);
 	}
 
 	/**
@@ -131,12 +193,21 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseDeclarators() throws SyntaxErrorException {
-		if (currentToken.type == TokenType.PUBLIC || currentToken.type == TokenType.PRIVATE)
+	private FieldDecl parseDeclarators() throws SyntaxErrorException {
+		boolean isPrivate = true;
+		boolean isStatic = false;
+		SourcePosition currPos = currentToken.position;
+		if (currentToken.type == TokenType.PUBLIC || currentToken.type == TokenType.PRIVATE) {
+			isPrivate = (currentToken.type == TokenType.PRIVATE);
 			consume();
-		if (currentToken.type == TokenType.STATIC)
+		}
+		if (currentToken.type == TokenType.STATIC) {
+			isStatic = true;
 			consume();
-		parseType();
+		}
+		Type memberType = parseType();
+		Identifier memberId = new Identifier(currentToken.spelling, currentToken.position);
+		return new FieldDecl(isPrivate, isStatic, memberType, memberId, currPos);
 	}
 
 	/**
@@ -157,23 +228,50 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseType() throws SyntaxErrorException {
+	private Type parseType() throws SyntaxErrorException {
+		Type type1;
+		SourcePosition typePos = currentToken.position;
 		switch (currentToken.type) {
 		case INT:
 		case IDENTIFIER:
+			switch (currentToken.type) {
+			case INT:
+				type1 = new BaseType(TypeKind.INT, typePos);
+				break;
+			case IDENTIFIER:
+				Identifier typeId = new Identifier(currentToken.spelling, typePos);
+				type1 = new ClassType(typeId, typePos);
+				break;
+			default:
+				type1 = null;
+				throw new SyntaxErrorException(currentToken);
+			}
 			consume();
 			if (currentToken.type == TokenType.LSQUARE) {
 				consume();
 				expect(TokenType.RSQUARE);
+				type1 = new ArrayType(type1, typePos);
 			}
 			break;
 		case BOOLEAN:
 		case VOID:
+			switch (currentToken.type) {
+			case BOOLEAN:
+				type1 = new BaseType(TypeKind.BOOLEAN, typePos);
+				break;
+			case VOID:
+				type1 = new BaseType(TypeKind.VOID, typePos);
+				break;
+			default:
+				type1 = null;
+				throw new SyntaxErrorException(currentToken);
+			}
 			consume();
 			break;
 		default:
 			throw new SyntaxErrorException("expected a Type, found ", currentToken);
 		}
+		return type1;
 	}
 
 	/**
@@ -185,14 +283,24 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseParameterList() throws SyntaxErrorException {
-		parseType();
+	private ParameterDeclList parseParameterList() throws SyntaxErrorException {
+		ParameterDeclList pList = new ParameterDeclList();
+		Type type1 = parseType();
+		Identifier id1;
+		ParameterDecl pDecl;
+		id1 = new Identifier(currentToken.spelling, currentToken.position);
+		pDecl = new ParameterDecl(type1, id1, type1.posn);
+		pList.add(pDecl);
 		expect(TokenType.IDENTIFIER);
 		while (currentToken.type == TokenType.COMMA) {
 			consume();
-			parseType();
+			type1 = parseType();
+			id1 = new Identifier(currentToken.spelling, currentToken.position);
+			pDecl = new ParameterDecl(type1, id1, type1.posn);
+			pList.add(pDecl);
 			expect(TokenType.IDENTIFIER);
 		}
+		return pList;
 	}
 
 	/**
@@ -204,12 +312,17 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseArgumentList() throws SyntaxErrorException {
-		parseExpression();
+	private ExprList parseArgumentList() throws SyntaxErrorException {
+		ExprList list1 = new ExprList();
+		Expression expr1;
+		expr1 = parseExpression();
+		list1.add(expr1);
 		while (currentToken.type == TokenType.COMMA) {
 			consume();
-			parseExpression();
+			expr1 = parseExpression();
+			list1.add(expr1);
 		}
+		return list1;
 	}
 
 	/**
@@ -222,11 +335,17 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseReferenceMember() throws SyntaxErrorException {
+	private IdentifierList parseReferenceMember(Identifier id1) throws SyntaxErrorException {
+		IdentifierList idList = new IdentifierList();
+		if (id1 != null) // if reference starts with an id instead of this
+			idList.add(id1);
 		while (currentToken.type == TokenType.DOT) {
 			consume();
+			Identifier currIdent = new Identifier(currentToken.spelling, currentToken.position);
 			expect(TokenType.IDENTIFIER);
+			idList.add(currIdent);
 		}
+		return idList;
 	}
 
 	/**
@@ -239,13 +358,19 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseReference() throws SyntaxErrorException {
+	private Reference parseReference() throws SyntaxErrorException {
+		Reference ref1 = null;
+		SourcePosition referencePos = currentToken.position;
 		if (currentToken.type == TokenType.THIS || currentToken.type == TokenType.IDENTIFIER) {
+			boolean isThis = (currentToken.type == TokenType.THIS);
+			Identifier id1 = new Identifier(currentToken.spelling, currentToken.position);
 			consume();
-			parseReferenceMember();
+			IdentifierList idList = parseReferenceMember(id1);
+			ref1 = new QualifiedRef(isThis, idList, referencePos);
 		} else {
 			throw new SyntaxErrorException(currentToken);
 		}
+		return ref1;
 	}
 
 	/**
@@ -253,79 +378,99 @@ public class Parser {
 	 * 
 	 * <pre>
 	 * Statement ::=
-	 *     { Statement* }
-	 *     | Type id = Expression <b>;</b>
-	 *     | Reference (<b>[</b> Expression <b>]</b>)? = Expression <b>;</b>
-	 *     | Reference <b>(</b> ArgumentList? <b>)</b> <b>;</b>
-	 *     | <b>if (</b> Expression <b>)</b> Statement (<b>else</b> Statement)?
-	 *     | <b>while (</b> Expression <b>)</b> Statement
+	 *     { Statement* }  //blockstmt
+	 *     | Type id = Expression <b>;</b>  //VardeclareStmt
+	 *     | Reference (<b>[</b> Expression <b>]</b>)? = Expression <b>;</b> //assignstmt
+	 *     | Reference <b>(</b> ArgumentList? <b>)</b> <b>;</b>     //< -- callstmt
+	 *     | <b>if (</b> Expression <b>)</b> Statement (<b>else</b> Statement)? //If stmt
+	 *     | <b>while (</b> Expression <b>)</b> Statement    // While stmt
 	 * </pre>
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseStatement() throws SyntaxErrorException {
+	private Statement parseStatement() throws SyntaxErrorException {
 		// Starters(Statement) = {, int, boolean, void, this, <id>, if, while
+		Statement stmt1;
+		SourcePosition stmtPos = currentToken.position;
 		switch (currentToken.type) {
 		case LCURL:
 			consume();
-			while (currentToken.type != TokenType.RCURL)
-				parseStatement();
+			StatementList stmtList1 = new StatementList();
+			while (currentToken.type != TokenType.RCURL) {
+				Statement currStmt = parseStatement();
+				stmtList1.add(currStmt);
+			}
 			expect(TokenType.RCURL);
+			stmt1 = new BlockStmt(stmtList1, stmtPos);
 			break;
 
 		case BOOLEAN:
 		case VOID:
-			parseType();
+			Type varDeclType = parseType();
+			Identifier varDeclId = new Identifier(currentToken.spelling, currentToken.position);
 			expect(TokenType.IDENTIFIER);
 			expect(TokenType.EQUALTO);
-			parseExpression();
+			Expression varDeclExpr = parseExpression();
 			expect(TokenType.SEMICOLON);
+			VarDecl varDecl1 = new VarDecl(varDeclType, varDeclId, stmtPos);
+			stmt1 = new VarDeclStmt(varDecl1, varDeclExpr, stmtPos);
 			break;
 
 		case INT:
+			Type intVarDeclType = new BaseType(TypeKind.INT, currentToken.position);
 			consume();
 			// int[] id = Expression;
 			if (currentToken.type == TokenType.LSQUARE) {
 				consume();
+				intVarDeclType = new ArrayType(intVarDeclType, intVarDeclType.posn);
 				expect(TokenType.RSQUARE);
 			}
+			Identifier intVarDeclId = new Identifier(currentToken.spelling, currentToken.position);
 			expect(TokenType.IDENTIFIER);
 			expect(TokenType.EQUALTO);
-			parseExpression();
+			Expression intVarDeclExpr = parseExpression();
 			expect(TokenType.SEMICOLON);
+			VarDecl varDecl2 = new VarDecl(intVarDeclType, intVarDeclId, stmtPos);
+			stmt1 = new VarDeclStmt(varDecl2, intVarDeclExpr, stmtPos);
 			break;
 
 		case THIS:
 			consume();
 
 			// this.
-			parseReferenceMember();
-
+			IdentifierList thisRefList = parseReferenceMember(null);
+			Reference thisRef = new QualifiedRef(true, thisRefList, stmtPos);
 			switch (currentToken.type) {
 			// this = Expression;
 			case EQUALTO:
 				consume();
-				parseExpression();
+				Expression thisRefExpr1 = parseExpression();
 				expect(TokenType.SEMICOLON);
+				stmt1 = new AssignStmt(thisRef, thisRefExpr1, stmtPos);
 				break;
 
 			// this[Expression] = Expression;
 			case LSQUARE:
 				consume();
-				parseExpression();
+				Expression thisRefExpr2 = parseExpression();
+				thisRef = new IndexedRef(thisRef, thisRefExpr2, stmtPos);
 				expect(TokenType.RSQUARE);
 				expect(TokenType.EQUALTO);
-				parseExpression();
+				Expression thisRefExpr3 = parseExpression();
 				expect(TokenType.SEMICOLON);
+				stmt1 = new AssignStmt(thisRef, thisRefExpr3, stmtPos);
 				break;
 
 			// this(ArgumentList?);
 			case LPAREN:
 				consume();
-				if (currentToken.type != TokenType.RPAREN)
-					parseArgumentList();
+				ExprList thisRefExprList = null;
+				if (currentToken.type != TokenType.RPAREN) {
+					thisRefExprList = parseArgumentList();
+				}
 				expect(TokenType.RPAREN);
 				expect(TokenType.SEMICOLON);
+				stmt1 = new CallStmt(thisRef, thisRefExprList, stmtPos);
 				break;
 
 			default:
@@ -334,62 +479,83 @@ public class Parser {
 			break;
 
 		case IDENTIFIER:
+			Identifier id1 = new Identifier(currentToken.spelling, currentToken.position);
+			Reference idRef1 = new QualifiedRef(id1);
 			consume();
 
 			switch (currentToken.type) {
 			case EQUALTO:
-				// id = Expression;
+				// id = Expression; //AssignStmt
 				consume();
-				parseExpression();
+				Expression idExpr1 = parseExpression();
 				expect(TokenType.SEMICOLON);
+				stmt1 = new AssignStmt(idRef1, idExpr1, stmtPos);
 				break;
 
 			case LSQUARE:
 				consume();
 
 				if (currentToken.type == TokenType.RSQUARE) {
-					// id[] id = Expression;
+					// id[] id = Expression; //VarDeclStmt
+					Type idType = new ClassType(id1, id1.posn);
+					Type idArrType = new ArrayType(idType, idType.posn);
 					consume();
+					Identifier id2 = new Identifier(currentToken.spelling, currentToken.position);
 					expect(TokenType.IDENTIFIER);
+					VarDecl idVarDecl = new VarDecl(idArrType, id2, stmtPos);
+					expect(TokenType.EQUALTO);
+					Expression idExpr2 = parseExpression();
+					expect(TokenType.SEMICOLON);
+					stmt1 = new VarDeclStmt(idVarDecl, idExpr2, stmtPos);
 				} else {
-					// id[Expression] = Expression;
-					parseExpression();
+					// id[Expression] = Expression; //AssignStmt
+					Expression idExpr3 = parseExpression();
+					idRef1 = new IndexedRef(idRef1, idExpr3, stmtPos);
 					expect(TokenType.RSQUARE);
+					expect(TokenType.EQUALTO);
+					Expression idExpr4 = parseExpression();
+					expect(TokenType.SEMICOLON);
+					stmt1 = new AssignStmt(idRef1, idExpr4, stmtPos);
 				}
-				expect(TokenType.EQUALTO);
-				parseExpression();
-				expect(TokenType.SEMICOLON);
 				break;
 
 			case DOT:
-				parseReferenceMember(); // id(.id)*
+				Expression idRefExpr1;
+				IdentifierList idList1 = parseReferenceMember(id1); // id(.id)*
+				idRef1 = new QualifiedRef(false, idList1, stmtPos);
 
 				switch (currentToken.type) {
 
 				case EQUALTO:
-					// id(.id)* = Expression
+					// id(.id)* = Expression //AssignStmt
 					consume();
-					parseExpression();
+					idRefExpr1 = parseExpression();
 					expect(TokenType.SEMICOLON);
+					stmt1 = new AssignStmt(idRef1, idRefExpr1, stmtPos);
 					break;
 
 				case LSQUARE:
-					// id(.id)*[Expression] = Expression;
+					// id(.id)*[Expression] = Expression; //AssignStmt
 					consume();
-					parseExpression();
+					idRefExpr1 = parseExpression();
+					idRef1 = new IndexedRef(idRef1, idRefExpr1, stmtPos);
 					expect(TokenType.RSQUARE);
 					expect(TokenType.EQUALTO);
-					parseExpression();
+					Expression idRefExpr2 = parseExpression();
 					expect(TokenType.SEMICOLON);
+					stmt1 = new AssignStmt(idRef1, idRefExpr2, stmtPos);
 					break;
 
 				case LPAREN:
-					// id(.id)*(ArgumentList?);
+					// id(.id)*(ArgumentList?); //CallStmt
 					consume();
-					if (currentToken.type != TokenType.RPAREN)
-						parseArgumentList();
+					ExprList idRefExprList = new ExprList();
+					if (currentToken.type != TokenType.RPAREN) {
+						idRefExprList = parseArgumentList();
+					}
 					expect(TokenType.RPAREN);
 					expect(TokenType.SEMICOLON);
+					stmt1 = new CallStmt(idRef1, idRefExprList, stmtPos);
 					break;
 
 				default:
@@ -398,20 +564,27 @@ public class Parser {
 				break;
 
 			case IDENTIFIER:
-				// id id = Expression;
+				// id id = Expression; //VarDeclStmt
+				Identifier id2 = new Identifier(currentToken.spelling, currentToken.position);
+				Type id1Class = new ClassType(id1, id1.posn);
 				consume();
 				expect(TokenType.EQUALTO);
-				parseExpression();
+				Expression idIdExpr1 = parseExpression();
 				expect(TokenType.SEMICOLON);
+				VarDecl idIdVarDecl = new VarDecl(id1Class, id2, stmtPos);
+				stmt1 = new VarDeclStmt(idIdVarDecl, idIdExpr1, stmtPos);
 				break;
 
 			case LPAREN:
-				// id (ArgumentList?);
+				// id (ArgumentList?); //Callstmt
 				consume();
-				if (currentToken.type != TokenType.RPAREN)
-					parseArgumentList();
+				ExprList idIdExprList = new ExprList();
+				if (currentToken.type != TokenType.RPAREN) {
+					idIdExprList = parseArgumentList();
+				}
 				expect(TokenType.RPAREN);
 				expect(TokenType.SEMICOLON);
+				stmt1 = new CallStmt(idRef1, idIdExprList, stmtPos);
 				break;
 
 			default:
@@ -422,26 +595,32 @@ public class Parser {
 		case IF:
 			consume();
 			expect(TokenType.LPAREN);
-			parseExpression();
+			Expression ifExpr1 = parseExpression();
 			expect(TokenType.RPAREN);
-			parseStatement();
+			Statement ifStmt1 = parseStatement();
+			Statement ifStmt2 = null;
 			if (currentToken.type == TokenType.ELSE) {
 				consume();
-				parseStatement();
+				ifStmt2 = parseStatement();
+				stmt1 = new IfStmt(ifExpr1, ifStmt1, ifStmt2, stmtPos);
+			} else {
+				stmt1 = new IfStmt(ifExpr1, ifStmt1, stmtPos);
 			}
 			break;
 
 		case WHILE:
 			consume();
 			expect(TokenType.LPAREN);
-			parseExpression();
+			Expression whileExpr1 = parseExpression();
 			expect(TokenType.RPAREN);
-			parseStatement();
+			Statement whileStmt1 = parseStatement();
+			stmt1 = new WhileStmt(whileExpr1, whileStmt1, stmtPos);
 			break;
 
 		default:
 			throw new SyntaxErrorException(currentToken);
 		}
+		return stmt1;
 	}
 
 	/**
@@ -453,12 +632,14 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseExpression() throws SyntaxErrorException {
-		parseConjunction();
+	private Expression parseExpression() throws SyntaxErrorException {
+		Expression expr = parseConjunction();
 		while (currentToken.type == TokenType.PIPE_PIPE) {
+			Operator op = new Operator(currentToken.spelling, currentToken.position);
 			consume();
-			parseConjunction();
+			expr = new BinaryExpr(op, expr, parseConjunction(), currentToken.position);
 		}
+		return expr;
 	}
 
 	/**
@@ -470,12 +651,14 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseConjunction() throws SyntaxErrorException {
-		parseEquality();
+	private Expression parseConjunction() throws SyntaxErrorException {
+		Expression expr = parseEquality();
 		while (currentToken.type == TokenType.AMPERSAND_AMPERSAND) {
+			Operator op = new Operator(currentToken.spelling, currentToken.position);
 			consume();
-			parseEquality();
+			expr = new BinaryExpr(op, expr, parseEquality(), currentToken.position);
 		}
+		return expr;
 	}
 
 	/**
@@ -487,12 +670,14 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseEquality() throws SyntaxErrorException {
-		parseRelational();
+	private Expression parseEquality() throws SyntaxErrorException {
+		Expression expr = parseRelational();
 		while (currentToken.type == TokenType.EQUALTO_EQUALTO || currentToken.type == TokenType.BANG_EQUALTO) {
+			Operator op = new Operator(currentToken.spelling, currentToken.position);
 			consume();
-			parseRelational();
+			expr = new BinaryExpr(op, expr, parseRelational(), currentToken.position);
 		}
+		return expr;
 	}
 
 	/**
@@ -504,13 +689,15 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseRelational() throws SyntaxErrorException {
-		parseAdditive();
+	private Expression parseRelational() throws SyntaxErrorException {
+		Expression expr = parseAdditive();
 		while (currentToken.type == TokenType.LANGLE_EQUALTO || currentToken.type == TokenType.LANGLE
 				|| currentToken.type == TokenType.RANGLE || currentToken.type == TokenType.RANGLE_EQUALTO) {
+			Operator op = new Operator(currentToken.spelling, currentToken.position);
 			consume();
-			parseAdditive();
+			expr = new BinaryExpr(op, expr, parseAdditive(), currentToken.position);
 		}
+		return expr;
 	}
 
 	/**
@@ -522,73 +709,110 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseAdditive() throws SyntaxErrorException {
-		parseMultiplicative();
+	private Expression parseAdditive() throws SyntaxErrorException {
+		Expression expr = parseMultiplicative();
 		while (currentToken.type == TokenType.PLUS || currentToken.type == TokenType.MINUS) {
+			Operator op = new Operator(currentToken.spelling, currentToken.position);
 			consume();
-			parseMultiplicative();
+			expr = new BinaryExpr(op, expr, parseMultiplicative(), currentToken.position);
 		}
+		return expr;
 	}
 
 	/**
 	 * Parses the <i>Multiplicative</i> non-terminal
 	 * 
 	 * <pre>
-	 * Multiplicative ::= Term ( ( <b>*</b> | <b>/</b> ) Term )*
+	 * Multiplicative ::= Unary ( ( <b>*</b> | <b>/</b> ) Unary )*
 	 * </pre>
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseMultiplicative() throws SyntaxErrorException {
-		parseTerm();
+	private Expression parseMultiplicative() throws SyntaxErrorException {
+		Expression expr = parseUnary();
 		while (currentToken.type == TokenType.ASTERISK || currentToken.type == TokenType.SLASH) {
+			Operator op = new Operator(currentToken.spelling, currentToken.position);
 			consume();
-			parseTerm();
+			expr = new BinaryExpr(op, expr, parseUnary(), currentToken.position);
 		}
+		return expr;
+	}
+
+	/**
+	 * Parses the <i>Unary</i> non-terminal
+	 * 
+	 * <pre>
+	 * Unary ::= ( <b>&minus;</b> | <b>!</b> )* Term
+	 * </pre>
+	 * 
+	 * @throws SyntaxErrorException
+	 */
+	private Expression parseUnary() throws SyntaxErrorException {
+		Stack<Operator> operators = new Stack<Operator>();
+		while(currentToken.type == TokenType.MINUS || currentToken.type == TokenType.BANG) {
+			operators.push(new Operator(currentToken.spelling, currentToken.position));
+			consume();
+		}
+		Expression expr = parseTerm();
+		while(!operators.empty()) {
+			Operator op = operators.pop();
+			expr = new UnaryExpr(op, expr, op.posn);
+		}
+		return expr;
 	}
 
 	/**
 	 * Parses the <i>Term</i> non-terminal
 	 * 
 	 * <pre>
-	 * Term ::= <b>(</b> Expression <b>)</b> 
-	 *       | ( <b>&minus;</b> | <b>!</b> ) Expression 
-	 *       | <b>num</b> | <b>true</b> | <b>false</b>
-	 *       | Reference ( <b>[</b> Expression <b>]</b> )?
-	 *       | Reference <b>(</b> ArgumentList? <b>)</b>
-	 *       | <b>new</b> (id <b>( )</b> | <b>int [</b> Expression <b>]</b> | id <b>[</b> Expression <b>]</b> )
+	 * Term ::= <b>(</b> Expression <b>)</b>                 // Expression
+	 *       | <b>num</b> | <b>true</b> | <b>false</b>              // LiteralExpr
+	 *       | Reference ( <b>[</b> Expression <b>]</b> )?   // RefExpr
+	 *       | Reference <b>(</b> ArgumentList? <b>)</b>     // CallExpr
+	 *       | <b>new</b> (id <b>( )</b> | <b>int [</b> Expression <b>]</b> | id <b>[</b> Expression <b>]</b> )  // NewObjectExpr, NewArrayExpr
 	 * </pre>
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private void parseTerm() throws SyntaxErrorException {
+	private Expression parseTerm() throws SyntaxErrorException {
+		Expression expr = null;
+		SourcePosition exprPos = currentToken.position;
+
 		switch (currentToken.type) {
 		case NEW:
 			consume();
+			Type newType;
+			Expression arrayExpr;
 
 			switch (currentToken.type) {
 			case INT:
 				// new int [ Expression ]
+				newType = new BaseType(TypeKind.INT, currentToken.position);
 				consume();
 				expect(TokenType.LSQUARE);
-				parseExpression();
+				arrayExpr = parseExpression();
 				expect(TokenType.RSQUARE);
+				expr = new NewArrayExpr(newType, arrayExpr, exprPos);
 				break;
 
 			case IDENTIFIER:
+				newType = new ClassType(new Identifier(currentToken.spelling, currentToken.position),
+						currentToken.position);
 				consume();
 				switch (currentToken.type) {
 				case LPAREN:
 					// new id ( )
 					consume();
 					expect(TokenType.RPAREN);
+					expr = new NewObjectExpr((ClassType) newType, exprPos);
 					break;
 
 				case LSQUARE:
 					// new id [ Expression ]
 					consume();
-					parseExpression();
+					arrayExpr = parseExpression();
 					expect(TokenType.RSQUARE);
+					expr = new NewArrayExpr(newType, arrayExpr, exprPos);
 					break;
 
 				default:
@@ -599,26 +823,32 @@ public class Parser {
 
 		case THIS:
 		case IDENTIFIER:
-			parseReference();
+			Reference idRef = parseReference();
+			Expression idExpr;
 
 			switch (currentToken.type) {
 			case LSQUARE:
 				// Reference[Expression]
 				consume();
-				parseExpression();
+				idExpr = parseExpression();
 				expect(TokenType.RSQUARE);
+				IndexedRef indexedRef1 = new IndexedRef(idRef, idExpr, idRef.posn);
+				expr = new RefExpr(indexedRef1, exprPos);
 				break;
 
 			case LPAREN:
 				// Reference(Expression)
 				consume();
+				ExprList argList = new ExprList();
 				if (currentToken.type != TokenType.RPAREN)
-					parseArgumentList();
+					argList = parseArgumentList();
 				expect(TokenType.RPAREN);
+				expr = new CallExpr(idRef, argList, exprPos);
 				break;
 
 			default:
 				// Reference
+				expr = new RefExpr(idRef, exprPos);
 				break;
 			}
 			break;
@@ -626,25 +856,26 @@ public class Parser {
 		case NUMBER:
 		case TRUE:
 		case FALSE:
+			Literal literal;
+			if (currentToken.type == TokenType.NUMBER)
+				literal = new IntLiteral(currentToken.spelling, currentToken.position);
+			else
+				literal = new BooleanLiteral(currentToken.spelling, currentToken.position);
 			consume();
-			return;
-
-		case MINUS:
-		case BANG:
-			// ( - | ! ) Expression
-			consume();
-			parseExpression();
-			return;
+			expr = new LiteralExpr(literal, exprPos);
+			break;
 
 		case LPAREN:
 			// ( Expression )
 			consume();
-			parseExpression();
+			expr = parseExpression();
 			expect(TokenType.RPAREN);
-			return;
+			break;
 
 		default:
 			throw new SyntaxErrorException(currentToken);
 		}
+
+		return expr;
 	}
 }
