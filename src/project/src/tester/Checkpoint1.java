@@ -12,12 +12,12 @@ import java.util.concurrent.Executors;
  * Put your tests in "tests/1" folder in your Eclipse workspace directory
  */
 public class Checkpoint1 {
-	
+
 	static ExecutorService threadPool = Executors.newCachedThreadPool();
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		File testDir = new File(System.getProperty("java.class.path")
-				+ "/../tests/1");
+		File testDir = new File(System.getProperty("java.class.path") + "/../tests/1");
+		System.out.println("Loading tests from " + testDir.getCanonicalPath());
 		int failures = 0;
 		for (File x : testDir.listFiles()) {
 			int returnCode = runTest(x);
@@ -26,8 +26,7 @@ public class Checkpoint1 {
 					System.out.println(x.getName() + " passed successfully!");
 				else {
 					failures++;
-					System.err.println(x.getName()
-							+ " failed but should have passed!");
+					System.err.println(x.getName() + " failed but should have passed!");
 				}
 			} else {
 				if (returnCode == 4)
@@ -38,35 +37,35 @@ public class Checkpoint1 {
 				}
 			}
 		}
-		System.out.println(failures + " failures in all.");	
+		System.out.println(failures + " failures in all.");
 	}
-	
+
 	private static int runTest(File x) throws IOException, InterruptedException {
-		ProcessBuilder pb = new ProcessBuilder("java", "miniJava.Compiler", x.getPath()).directory(new File(System.getProperty("java.class.path")));
+		ProcessBuilder pb = new ProcessBuilder("java", "miniJava.Compiler", x.getPath()).directory(new File(System
+				.getProperty("java.class.path")));
 		Process p = pb.start();
-		threadPool.execute(new ProcessOutputter(p.getInputStream(), false));
+		threadPool.execute(new ProcessOutputter(p.getInputStream(), true));
 		p.waitFor();
 		return p.exitValue();
 	}
-	
+
 	static class ProcessOutputter implements Runnable {
 		private Scanner processOutput;
 		private boolean output;
-		
+
 		public ProcessOutputter(InputStream _processStream, boolean _output) {
 			processOutput = new Scanner(_processStream);
 			output = _output;
 		}
+
 		@Override
 		public void run() {
-			while(processOutput.hasNextLine()) {
+			while (processOutput.hasNextLine()) {
 				String line = processOutput.nextLine();
 				if (output)
 					System.out.println(line);
 			}
 		}
-		
-		
+
 	}
 }
-

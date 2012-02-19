@@ -3,6 +3,7 @@ package miniJava.SyntacticAnalyzer;
 /**
  * Indicates an error during scanning
  */
+@SuppressWarnings("serial")
 public class SyntaxErrorException extends Exception {
 	public Token token = null;
 	public static final String ERROR_HEADER = "syntax error: ";
