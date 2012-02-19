@@ -1,0 +1,13 @@
+class Test {
+	private void do() {
+//		x = -(y + z * 2 / 30);
+//		y = !!!!z;
+//		y = - ! - ! -z;
+//		x = y + !true * !false / new int[x+y*new x()];
+//		y = y- -z;
+//		y = x >= y > z <= d < 1 == 2 != 4;
+//		int x = new y[1 && 2 || 3];
+		x.y.z[2] = y[1*2 > 3] - -d.z[!!1+2-d.x()];
+		return x;
+	}
+}

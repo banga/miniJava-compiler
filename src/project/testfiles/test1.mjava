@@ -2,6 +2,7 @@
 /*
  * Multiline comments here
  * **** //
+ *
  */
 class PA1Test {
 	int a;
@@ -40,6 +41,7 @@ class Compiler {
 		} else {
 			Parser parser = new Parser();
 			parser.parseProgram();
+			y = x--y;
 		}
 		if (args.a < 1) {
 			e.printStackTrace();
