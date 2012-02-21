@@ -41,7 +41,7 @@ class Compiler {
 		} else {
 			Parser parser = new Parser();
 			parser.parseProgram();
-			y = x--y;
+			y = x- -y;
 		}
 		if (args.a < 1) {
 			e.printStackTrace();
