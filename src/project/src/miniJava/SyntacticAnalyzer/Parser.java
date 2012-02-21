@@ -194,7 +194,7 @@ public class Parser {
 	 * @throws SyntaxErrorException
 	 */
 	private FieldDecl parseDeclarators() throws SyntaxErrorException {
-		boolean isPrivate = true;
+		boolean isPrivate = false;
 		boolean isStatic = false;
 		SourcePosition currPos = currentToken.position;
 		if (currentToken.type == TokenType.PUBLIC || currentToken.type == TokenType.PRIVATE) {
