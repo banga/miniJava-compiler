@@ -363,7 +363,7 @@ public class Parser {
 		SourcePosition referencePos = currentToken.position;
 		if (currentToken.type == TokenType.THIS || currentToken.type == TokenType.IDENTIFIER) {
 			boolean isThis = (currentToken.type == TokenType.THIS);
-			Identifier id1 = new Identifier(currentToken.spelling, currentToken.position);
+			Identifier id1 = isThis ?  null : new Identifier(currentToken.spelling, currentToken.position);
 			consume();
 			IdentifierList idList = parseReferenceMember(id1);
 			ref1 = new QualifiedRef(isThis, idList, referencePos);
@@ -378,12 +378,12 @@ public class Parser {
 	 * 
 	 * <pre>
 	 * Statement ::=
-	 *     { Statement* }  //blockstmt
-	 *     | Type id = Expression <b>;</b>  //VardeclareStmt
-	 *     | Reference (<b>[</b> Expression <b>]</b>)? = Expression <b>;</b> //assignstmt
-	 *     | Reference <b>(</b> ArgumentList? <b>)</b> <b>;</b>     //< -- callstmt
-	 *     | <b>if (</b> Expression <b>)</b> Statement (<b>else</b> Statement)? //If stmt
-	 *     | <b>while (</b> Expression <b>)</b> Statement    // While stmt
+	 *     { Statement* }                                  // BlockStmt
+	 *     | Type id = Expression <b>;</b>                        // VarDeclStmt
+	 *     | Reference (<b>[</b> Expression <b>]</b>)? = Expression <b>;</b>    // AssignStmt
+	 *     | Reference <b>(</b> ArgumentList? <b>)</b> <b>;</b>                 // CallStmt
+	 *     | <b>if (</b> Expression <b>)</b> Statement (<b>else</b> Statement)? // IfStmt
+	 *     | <b>while (</b> Expression <b>)</b> Statement                // WhileStmt
 	 * </pre>
 	 * 
 	 * @throws SyntaxErrorException
@@ -749,12 +749,12 @@ public class Parser {
 	 */
 	private Expression parseUnary() throws SyntaxErrorException {
 		Stack<Operator> operators = new Stack<Operator>();
-		while(currentToken.type == TokenType.MINUS || currentToken.type == TokenType.BANG) {
+		while (currentToken.type == TokenType.MINUS || currentToken.type == TokenType.BANG) {
 			operators.push(new Operator(currentToken.spelling, currentToken.position));
 			consume();
 		}
 		Expression expr = parseTerm();
-		while(!operators.empty()) {
+		while (!operators.empty()) {
 			Operator op = operators.pop();
 			expr = new UnaryExpr(op, expr, op.posn);
 		}
