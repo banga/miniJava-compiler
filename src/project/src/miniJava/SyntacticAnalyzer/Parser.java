@@ -103,16 +103,13 @@ public class Parser {
 	 * @throws ScannerException
 	 */
 	public miniJava.AbstractSyntaxTrees.Package parseProgram() throws SyntaxErrorException {
-		miniJava.AbstractSyntaxTrees.Package package1 = null;
 		consume();
 		SourcePosition packagePos = currentToken.position;
 		ClassDeclList packageClassList = new ClassDeclList();
 		while (currentToken.type != TokenType.EOT) {
-			ClassDecl classDecl1 = parseClassDeclaration();
-			packageClassList.add(classDecl1);
+			packageClassList.add(parseClassDeclaration());
 		}
-		package1 = new miniJava.AbstractSyntaxTrees.Package(packageClassList, packagePos);
-		return package1;
+		return new miniJava.AbstractSyntaxTrees.Package(packageClassList, packagePos);
 	}
 
 	/**
@@ -159,7 +156,7 @@ public class Parser {
 
 				// Method body
 				expect(TokenType.LCURL);
-				StatementList methodStmtList1 = new StatementList();
+				StatementList methodStmtList = new StatementList();
 				Expression returnExpr = null;
 				while (currentToken.type != TokenType.RCURL) {
 					if (currentToken.type == TokenType.RETURN) {
@@ -168,11 +165,11 @@ public class Parser {
 						expect(TokenType.SEMICOLON);
 						break;
 					} else {
-						methodStmtList1.add(parseStatement());
+						methodStmtList.add(parseStatement());
 					}
 				}
 				expect(TokenType.RCURL);
-				MethodDecl methodDecl = new MethodDecl(memberDecl, pList, methodStmtList1, returnExpr, memberDecl.posn);
+				MethodDecl methodDecl = new MethodDecl(memberDecl, pList, methodStmtList, returnExpr, memberDecl.posn);
 				methodList.add(methodDecl);
 			} else {
 				FieldDecl fieldDecl = new FieldDecl(memberDecl, memberDecl.posn);
@@ -229,49 +226,54 @@ public class Parser {
 	 * @throws SyntaxErrorException
 	 */
 	private Type parseType() throws SyntaxErrorException {
-		Type type1;
+		Type type;
 		SourcePosition typePos = currentToken.position;
+
 		switch (currentToken.type) {
 		case INT:
 		case IDENTIFIER:
 			switch (currentToken.type) {
 			case INT:
-				type1 = new BaseType(TypeKind.INT, typePos);
+				type = new BaseType(TypeKind.INT, typePos);
 				break;
+
 			case IDENTIFIER:
 				Identifier typeId = new Identifier(currentToken.spelling, typePos);
-				type1 = new ClassType(typeId, typePos);
+				type = new ClassType(typeId, typePos);
 				break;
+
 			default:
-				type1 = null;
 				throw new SyntaxErrorException(currentToken);
 			}
 			consume();
 			if (currentToken.type == TokenType.LSQUARE) {
+				// ArrayType
 				consume();
 				expect(TokenType.RSQUARE);
-				type1 = new ArrayType(type1, typePos);
+				type = new ArrayType(type, typePos);
 			}
 			break;
+
 		case BOOLEAN:
 		case VOID:
 			switch (currentToken.type) {
 			case BOOLEAN:
-				type1 = new BaseType(TypeKind.BOOLEAN, typePos);
+				type = new BaseType(TypeKind.BOOLEAN, typePos);
 				break;
 			case VOID:
-				type1 = new BaseType(TypeKind.VOID, typePos);
+				type = new BaseType(TypeKind.VOID, typePos);
 				break;
 			default:
-				type1 = null;
 				throw new SyntaxErrorException(currentToken);
 			}
 			consume();
 			break;
+
 		default:
 			throw new SyntaxErrorException("expected a Type, found ", currentToken);
 		}
-		return type1;
+
+		return type;
 	}
 
 	/**
@@ -285,19 +287,16 @@ public class Parser {
 	 */
 	private ParameterDeclList parseParameterList() throws SyntaxErrorException {
 		ParameterDeclList pList = new ParameterDeclList();
-		Type type1 = parseType();
-		Identifier id1;
-		ParameterDecl pDecl;
-		id1 = new Identifier(currentToken.spelling, currentToken.position);
-		pDecl = new ParameterDecl(type1, id1, type1.posn);
-		pList.add(pDecl);
+		Type type = parseType();
+		Identifier id = new Identifier(currentToken.spelling, currentToken.position);
+		pList.add(new ParameterDecl(type, id, type.posn));
+
 		expect(TokenType.IDENTIFIER);
 		while (currentToken.type == TokenType.COMMA) {
 			consume();
-			type1 = parseType();
-			id1 = new Identifier(currentToken.spelling, currentToken.position);
-			pDecl = new ParameterDecl(type1, id1, type1.posn);
-			pList.add(pDecl);
+			type = parseType();
+			id = new Identifier(currentToken.spelling, currentToken.position);
+			pList.add(new ParameterDecl(type, id, type.posn));
 			expect(TokenType.IDENTIFIER);
 		}
 		return pList;
@@ -313,16 +312,16 @@ public class Parser {
 	 * @throws SyntaxErrorException
 	 */
 	private ExprList parseArgumentList() throws SyntaxErrorException {
-		ExprList list1 = new ExprList();
-		Expression expr1;
-		expr1 = parseExpression();
-		list1.add(expr1);
+		ExprList exprs = new ExprList();
+		Expression expr;
+		expr = parseExpression();
+		exprs.add(expr);
 		while (currentToken.type == TokenType.COMMA) {
 			consume();
-			expr1 = parseExpression();
-			list1.add(expr1);
+			expr = parseExpression();
+			exprs.add(expr);
 		}
-		return list1;
+		return exprs;
 	}
 
 	/**
@@ -335,15 +334,14 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private IdentifierList parseReferenceMember(Identifier id1) throws SyntaxErrorException {
+	private IdentifierList parseReferenceMember(Identifier id) throws SyntaxErrorException {
 		IdentifierList idList = new IdentifierList();
-		if (id1 != null) // if reference starts with an id instead of this
-			idList.add(id1);
+		if (id != null) // if reference starts with an id instead of this
+			idList.add(id);
 		while (currentToken.type == TokenType.DOT) {
 			consume();
-			Identifier currIdent = new Identifier(currentToken.spelling, currentToken.position);
+			idList.add(new Identifier(currentToken.spelling, currentToken.position));
 			expect(TokenType.IDENTIFIER);
-			idList.add(currIdent);
 		}
 		return idList;
 	}
@@ -359,18 +357,19 @@ public class Parser {
 	 * @throws SyntaxErrorException
 	 */
 	private Reference parseReference() throws SyntaxErrorException {
-		Reference ref1 = null;
+		Reference reference = null;
 		SourcePosition referencePos = currentToken.position;
+
 		if (currentToken.type == TokenType.THIS || currentToken.type == TokenType.IDENTIFIER) {
 			boolean isThis = (currentToken.type == TokenType.THIS);
-			Identifier id1 = isThis ?  null : new Identifier(currentToken.spelling, currentToken.position);
+			Identifier id = isThis ? null : new Identifier(currentToken.spelling, currentToken.position);
 			consume();
-			IdentifierList idList = parseReferenceMember(id1);
-			ref1 = new QualifiedRef(isThis, idList, referencePos);
+			IdentifierList idList = parseReferenceMember(id);
+			reference = new QualifiedRef(isThis, idList, referencePos);
 		} else {
 			throw new SyntaxErrorException(currentToken);
 		}
-		return ref1;
+		return reference;
 	}
 
 	/**
@@ -390,18 +389,17 @@ public class Parser {
 	 */
 	private Statement parseStatement() throws SyntaxErrorException {
 		// Starters(Statement) = {, int, boolean, void, this, <id>, if, while
-		Statement stmt1;
+		Statement stmt;
 		SourcePosition stmtPos = currentToken.position;
 		switch (currentToken.type) {
 		case LCURL:
 			consume();
-			StatementList stmtList1 = new StatementList();
+			StatementList stmtList = new StatementList();
 			while (currentToken.type != TokenType.RCURL) {
-				Statement currStmt = parseStatement();
-				stmtList1.add(currStmt);
+				stmtList.add(parseStatement());
 			}
 			expect(TokenType.RCURL);
-			stmt1 = new BlockStmt(stmtList1, stmtPos);
+			stmt = new BlockStmt(stmtList, stmtPos);
 			break;
 
 		case BOOLEAN:
@@ -413,7 +411,7 @@ public class Parser {
 			Expression varDeclExpr = parseExpression();
 			expect(TokenType.SEMICOLON);
 			VarDecl varDecl1 = new VarDecl(varDeclType, varDeclId, stmtPos);
-			stmt1 = new VarDeclStmt(varDecl1, varDeclExpr, stmtPos);
+			stmt = new VarDeclStmt(varDecl1, varDeclExpr, stmtPos);
 			break;
 
 		case INT:
@@ -431,7 +429,7 @@ public class Parser {
 			Expression intVarDeclExpr = parseExpression();
 			expect(TokenType.SEMICOLON);
 			VarDecl varDecl2 = new VarDecl(intVarDeclType, intVarDeclId, stmtPos);
-			stmt1 = new VarDeclStmt(varDecl2, intVarDeclExpr, stmtPos);
+			stmt = new VarDeclStmt(varDecl2, intVarDeclExpr, stmtPos);
 			break;
 
 		case THIS:
@@ -446,7 +444,7 @@ public class Parser {
 				consume();
 				Expression thisRefExpr1 = parseExpression();
 				expect(TokenType.SEMICOLON);
-				stmt1 = new AssignStmt(thisRef, thisRefExpr1, stmtPos);
+				stmt = new AssignStmt(thisRef, thisRefExpr1, stmtPos);
 				break;
 
 			// this[Expression] = Expression;
@@ -458,7 +456,7 @@ public class Parser {
 				expect(TokenType.EQUALTO);
 				Expression thisRefExpr3 = parseExpression();
 				expect(TokenType.SEMICOLON);
-				stmt1 = new AssignStmt(thisRef, thisRefExpr3, stmtPos);
+				stmt = new AssignStmt(thisRef, thisRefExpr3, stmtPos);
 				break;
 
 			// this(ArgumentList?);
@@ -470,7 +468,7 @@ public class Parser {
 				}
 				expect(TokenType.RPAREN);
 				expect(TokenType.SEMICOLON);
-				stmt1 = new CallStmt(thisRef, thisRefExprList, stmtPos);
+				stmt = new CallStmt(thisRef, thisRefExprList, stmtPos);
 				break;
 
 			default:
@@ -489,7 +487,7 @@ public class Parser {
 				consume();
 				Expression idExpr1 = parseExpression();
 				expect(TokenType.SEMICOLON);
-				stmt1 = new AssignStmt(idRef1, idExpr1, stmtPos);
+				stmt = new AssignStmt(idRef1, idExpr1, stmtPos);
 				break;
 
 			case LSQUARE:
@@ -506,7 +504,7 @@ public class Parser {
 					expect(TokenType.EQUALTO);
 					Expression idExpr2 = parseExpression();
 					expect(TokenType.SEMICOLON);
-					stmt1 = new VarDeclStmt(idVarDecl, idExpr2, stmtPos);
+					stmt = new VarDeclStmt(idVarDecl, idExpr2, stmtPos);
 				} else {
 					// id[Expression] = Expression; //AssignStmt
 					Expression idExpr3 = parseExpression();
@@ -515,7 +513,7 @@ public class Parser {
 					expect(TokenType.EQUALTO);
 					Expression idExpr4 = parseExpression();
 					expect(TokenType.SEMICOLON);
-					stmt1 = new AssignStmt(idRef1, idExpr4, stmtPos);
+					stmt = new AssignStmt(idRef1, idExpr4, stmtPos);
 				}
 				break;
 
@@ -531,7 +529,7 @@ public class Parser {
 					consume();
 					idRefExpr1 = parseExpression();
 					expect(TokenType.SEMICOLON);
-					stmt1 = new AssignStmt(idRef1, idRefExpr1, stmtPos);
+					stmt = new AssignStmt(idRef1, idRefExpr1, stmtPos);
 					break;
 
 				case LSQUARE:
@@ -543,7 +541,7 @@ public class Parser {
 					expect(TokenType.EQUALTO);
 					Expression idRefExpr2 = parseExpression();
 					expect(TokenType.SEMICOLON);
-					stmt1 = new AssignStmt(idRef1, idRefExpr2, stmtPos);
+					stmt = new AssignStmt(idRef1, idRefExpr2, stmtPos);
 					break;
 
 				case LPAREN:
@@ -555,7 +553,7 @@ public class Parser {
 					}
 					expect(TokenType.RPAREN);
 					expect(TokenType.SEMICOLON);
-					stmt1 = new CallStmt(idRef1, idRefExprList, stmtPos);
+					stmt = new CallStmt(idRef1, idRefExprList, stmtPos);
 					break;
 
 				default:
@@ -572,7 +570,7 @@ public class Parser {
 				Expression idIdExpr1 = parseExpression();
 				expect(TokenType.SEMICOLON);
 				VarDecl idIdVarDecl = new VarDecl(id1Class, id2, stmtPos);
-				stmt1 = new VarDeclStmt(idIdVarDecl, idIdExpr1, stmtPos);
+				stmt = new VarDeclStmt(idIdVarDecl, idIdExpr1, stmtPos);
 				break;
 
 			case LPAREN:
@@ -584,7 +582,7 @@ public class Parser {
 				}
 				expect(TokenType.RPAREN);
 				expect(TokenType.SEMICOLON);
-				stmt1 = new CallStmt(idRef1, idIdExprList, stmtPos);
+				stmt = new CallStmt(idRef1, idIdExprList, stmtPos);
 				break;
 
 			default:
@@ -595,32 +593,29 @@ public class Parser {
 		case IF:
 			consume();
 			expect(TokenType.LPAREN);
-			Expression ifExpr1 = parseExpression();
+			Expression ifExpr = parseExpression();
 			expect(TokenType.RPAREN);
-			Statement ifStmt1 = parseStatement();
-			Statement ifStmt2 = null;
+			Statement ifBlock = parseStatement();
 			if (currentToken.type == TokenType.ELSE) {
 				consume();
-				ifStmt2 = parseStatement();
-				stmt1 = new IfStmt(ifExpr1, ifStmt1, ifStmt2, stmtPos);
+				stmt = new IfStmt(ifExpr, ifBlock, parseStatement(), stmtPos);
 			} else {
-				stmt1 = new IfStmt(ifExpr1, ifStmt1, stmtPos);
+				stmt = new IfStmt(ifExpr, ifBlock, stmtPos);
 			}
 			break;
 
 		case WHILE:
 			consume();
 			expect(TokenType.LPAREN);
-			Expression whileExpr1 = parseExpression();
+			Expression whileExpr = parseExpression();
 			expect(TokenType.RPAREN);
-			Statement whileStmt1 = parseStatement();
-			stmt1 = new WhileStmt(whileExpr1, whileStmt1, stmtPos);
+			stmt = new WhileStmt(whileExpr, parseStatement(), stmtPos);
 			break;
 
 		default:
 			throw new SyntaxErrorException(currentToken);
 		}
-		return stmt1;
+		return stmt;
 	}
 
 	/**
@@ -857,10 +852,11 @@ public class Parser {
 		case TRUE:
 		case FALSE:
 			Literal literal;
-			if (currentToken.type == TokenType.NUMBER)
+			if (currentToken.type == TokenType.NUMBER) {
 				literal = new IntLiteral(currentToken.spelling, currentToken.position);
-			else
+			} else {
 				literal = new BooleanLiteral(currentToken.spelling, currentToken.position);
+			}
 			consume();
 			expr = new LiteralExpr(literal, exprPos);
 			break;
