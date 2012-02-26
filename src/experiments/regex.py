@@ -7,9 +7,9 @@ import sys
 """
 
   A class that simulates NFAs 
-  Each State is a list of nodes
-  Each Node is a list of edges
-  Each Edge is a tuple of character and node index
+    State: a list of Nodes
+    Node: a list of Edges
+    Edge: a tuple of a character and a node index
 
 """
 class NFA:
@@ -87,7 +87,7 @@ class NFA:
     new_accepting = [offset + node for node in nfa.accepting_]
     self.accepting_ = new_accepting
 
-  # Corresponding to ? operator
+  # Corresponds to the ? operator
   def optional(self):
     for node in self.accepting_:
       self.add_edge(self.start_, node)
