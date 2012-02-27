@@ -1,4 +1,4 @@
-/*class Test {
+class Test {
 	private void do() {
 		x = 1+3*4/2+5+6+7;
 		x = -(y + z * 2 / 30);
@@ -11,95 +11,12 @@
 		x.y.z[2] = y[1*2 > 3] - -d.z[!!1+2-d.x()];
 		return x;
 	}
-}*/
-
-class GenericArray {
-	private Object[] elems;
-	public int length;
-
-	public int GenericArray() {
-		this(16);
-	}
-	public int GenericArray(int capacity) {
-		this.length = 0;
-		this.capacity = capacity;
-		elems = new Object[capacity];
-	}
-	public void resize(int newcapacity) {
-		if(newcapacity < 0) throw new IndexOutOfBoundsException();
-
-		Object newelems[] = new Object[newcapacity];
-		for(int i = 0; i < length; i++)
-			newelems[i] = elems[i];
-		elems = newelems;
-		capacity = newcapacity;
-	}
-	public void add(T t) {
-		if(length >= capacity) {
-			resize(capacity*2);
-		}
-		elems[length++] = t;
-	}
-	public T at(int index) throws IndexOutOfBoundsException {
-		if(index < 0 || index >= length) throw new IndexOutOfBoundsException();
-		return (T)elems[index];
-	}
-	public String toString() {
-		StringBuilder s = new StringBuilder(length + " elements: ");
-		for(int i = 0; i < length; i++) {
-			s.append(elems[i]);
-			s.append(' ');
-		}
-		return s.toString();
-	}
-}
-abstract class Shape {
-	protected int x, y;
-	public Shape(int x, int y) {
-		this.x = x;
-		this.y = y;
-	}
-	abstract void Draw();
-}
-class Point extends Shape {
-	public Point(int x, int y) {
-		super(x,y);
-	}
-	void Draw() {
-		System.out.println("Point at: (" + x + ", " + y + ")");
-	}
 }
 
-class Circle extends Shape {
-	protected int radius;
-	public Circle(int x, int y, int radius) {
-		super(x,y);
-		this.radius = radius;
-	}
-	void Draw() {
-		System.out.println("Circle of radius " + radius + " at: (" + x + ", " + y + ")");
-	}	
-}
-
-public class Main {
-	static void doSomething(GenericArray<? extends Shape> shapes) {
-		for(int i = 0; i < shapes.length; i++)
-			shapes.at(i).Draw();
-	}
-	public static void main(String[] args) {
-		GenericArray<Shape> shapes = new GenericArray<Shape>();
-		shapes.add(new Point(2,3));
-		shapes.add(new Circle(3,3,6));
-		GenericArray<Circle> circles = new GenericArray<Circle>();
-		circles.add(new Circle(2,3,10));
-		circles.add(
-			new Circle(5,5,5) {
-				void Draw() {
-					System.out.println("Sphere of radius " + radius + " at: (" + x + ", " + y + ")");
-				}
-			}
-		);
-		doSomething(shapes);
-		doSomething(circles);
+class Test {
+	public static int test(int x, String y) {
+		int z = 0;
+		z = x * 2;
+		return y;
 	}
 }

@@ -23,6 +23,10 @@ public abstract class MemberDecl extends Declaration {
     	this.type = md.type;
     }
     
+    public String toString() {
+    	return (isPrivate ? "private " : "public ") + (isStatic ? "static " : "") + type.toString() + " " + id.spelling;
+    }
+
     public boolean isPrivate;
     public boolean isStatic;
     public Type type;

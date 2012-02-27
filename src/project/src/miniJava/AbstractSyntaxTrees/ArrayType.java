@@ -10,16 +10,19 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ArrayType extends Type {
 
-	    public ArrayType(Type eltType, SourcePosition posn){
-	        super(posn);
-	        typeKind = TypeKind.ARRAY;
-	        this.eltType = eltType;
-	    }
-	        
-	    public <A,R> R visit(Visitor<A,R> v, A o) {
-	        return v.visitArrayType(this, o);
-	    }
-
-	    public Type eltType;
+	public ArrayType(Type eltType, SourcePosition posn) {
+		super(posn);
+		typeKind = TypeKind.ARRAY;
+		this.eltType = eltType;
 	}
 
+	public <A, R> R visit(Visitor<A, R> v, A o) {
+		return v.visitArrayType(this, o);
+	}
+
+	public String toString() {
+		return eltType.toString() + "[]";
+	}
+
+	public Type eltType;
+}

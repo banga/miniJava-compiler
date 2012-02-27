@@ -1,5 +1,6 @@
 package miniJava.ContextualAnalyzer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -66,21 +67,32 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 	@Override
 	public IdentificationTable visitPackage(Package prog, IdentificationTable table) {
 		Iterator<ClassDecl> it = prog.classDeclList.iterator();
+		ArrayList<Declaration> memberDeclarations = new ArrayList<Declaration>();
+
 		while (it.hasNext()) {
 			ClassDecl cd = it.next();
+			addDeclaration(table, cd);
 
 			IdentificationTable classTable = cd.visit(this, new IdentificationTable());
 
-			HashMap<String, Declaration> classMembers = classTable.scopes.get(classTable.scopes.size() - 1);
-			Iterator<String> itm = classMembers.keySet().iterator();
-			while (itm.hasNext()) {
-				Declaration memberDecl = classMembers.get(itm.next());
-				memberDecl.id.spelling = cd.id.spelling + "." + memberDecl.id.spelling;
-				addDeclaration(table, memberDecl);
+			int scopeLevel = classTable.scopes.size() - 1;
+			if(scopeLevel > IdentificationTable.CLASS_SCOPE) {
+				// Add class members, if any
+				HashMap<String, Declaration> classMembers = classTable.scopes.get(scopeLevel);
+	
+				Iterator<String> itm = classMembers.keySet().iterator();
+				while (itm.hasNext()) {
+					Declaration memberDecl = classMembers.get(itm.next());
+					memberDecl.id.spelling = cd.id.spelling + "." + memberDecl.id.spelling;
+					memberDeclarations.add(memberDecl);
+				}
 			}
-
-			addDeclaration(table, cd);
 		}
+		
+		table.openScope();
+		for(int i = 0; i < memberDeclarations.size(); i++)
+			addDeclaration(table, memberDeclarations.get(i));
+
 		return table;
 	}
 

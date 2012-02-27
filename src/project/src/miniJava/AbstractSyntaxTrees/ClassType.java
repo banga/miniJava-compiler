@@ -7,17 +7,20 @@ package miniJava.AbstractSyntaxTrees;
 
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
-public class ClassType extends Type
-{
-    public ClassType(Identifier id, SourcePosition posn){
-        super(posn);
-        typeKind = TypeKind.CLASS;
-        name = id;
-    }
-        
-    public <A,R> R visit(Visitor<A,R> v, A o) {
-        return v.visitClassType(this, o);
-    }
+public class ClassType extends Type {
+	public ClassType(Identifier id, SourcePosition posn) {
+		super(posn);
+		typeKind = TypeKind.CLASS;
+		name = id;
+	}
 
-    public Identifier name;
+	public <A, R> R visit(Visitor<A, R> v, A o) {
+		return v.visitClassType(this, o);
+	}
+
+	public String toString() {
+		return name.spelling;
+	}
+
+	public Identifier name;
 }

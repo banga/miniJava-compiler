@@ -25,7 +25,11 @@ class PA1Test {
 		m.n[2] = 1;
 		n = 5 + n.m * n * n[n.m[3]];
 		while(true) {
-			String[] n = new String[10];
+			String[] s = new String[10];
+			{
+				int args = 2;
+				boolean n = false;
+			}
 		}
 	}
 

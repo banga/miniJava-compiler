@@ -6,7 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import miniJava.AbstractSyntaxTrees.AST;
-import miniJava.AbstractSyntaxTrees.ASTDisplay;
+import miniJava.ContextualAnalyzer.ASTIdentify;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
@@ -15,12 +15,12 @@ public class Compiler {
 	private static void printOffendingLine(String fileName, SourcePosition position) {
 		try {
 			BufferedReader in = new BufferedReader(new FileReader(fileName));
-			for(int i = 1; i < position.line; i++)
+			for (int i = 1; i < position.line; i++)
 				in.readLine();
 			String line = in.readLine();
 			System.out.println(line);
-			for(int i = 1; i < position.column; i++) {
-				if(line.charAt(i-1) == '\t') {
+			for (int i = 1; i < position.column; i++) {
+				if (line.charAt(i - 1) == '\t') {
 					System.out.print('\t');
 				} else {
 					System.out.print(' ');
@@ -30,7 +30,7 @@ public class Compiler {
 		} catch (IOException e) {
 		}
 	}
-	
+
 	public static void main(String[] args) {
 		if (args.length < 1) {
 			System.out.println("Usage: java miniJava.Compiler <filename>");
@@ -40,10 +40,14 @@ public class Compiler {
 		try {
 			Parser parser = new Parser(new FileInputStream(args[0]));
 			AST ast = parser.parseProgram();
-			ASTDisplay display = new ASTDisplay();
-			display.showTree(ast);
+
+			// ASTDisplay display = new ASTDisplay();
+			// display.showTree(ast);
+
+			ASTIdentify identify = new ASTIdentify();
+			identify.createIdentificationTable(ast).display();
 		} catch (SyntaxErrorException e) {
-			//e.printStackTrace();
+			// e.printStackTrace();
 			if (e.token != null && e.token.position != null) {
 				printOffendingLine(args[0], e.token.position);
 			}

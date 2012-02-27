@@ -5,7 +5,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import miniJava.AbstractSyntaxTrees.BaseType;
+import miniJava.AbstractSyntaxTrees.ClassDecl;
+import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.Declaration;
+import miniJava.AbstractSyntaxTrees.FieldDecl;
+import miniJava.AbstractSyntaxTrees.FieldDeclList;
+import miniJava.AbstractSyntaxTrees.Identifier;
+import miniJava.AbstractSyntaxTrees.MemberDecl;
+import miniJava.AbstractSyntaxTrees.MethodDecl;
+import miniJava.AbstractSyntaxTrees.MethodDeclList;
+import miniJava.AbstractSyntaxTrees.ParameterDecl;
+import miniJava.AbstractSyntaxTrees.ParameterDeclList;
+import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
 /**
@@ -20,12 +32,52 @@ public class IdentificationTable {
 	List<HashMap<String, Declaration>> scopes = new ArrayList<HashMap<String, Declaration>>();
 
 	public IdentificationTable() {
-		HashMap<String, Declaration> predefined = new HashMap<String, Declaration>();
+		openScope();
+
+		/* 
+		 * _PrintStream class and methods 
+		 */
+		MethodDeclList printStreamMethods = new MethodDeclList();
+		ParameterDeclList params = new ParameterDeclList();
+		params.add(new ParameterDecl(new BaseType(TypeKind.INT, null), new Identifier("n", null), null));
+
+		// public void print(int n);
+		MemberDecl print = new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), new Identifier("_PrintStream.print", null), null);
+		print = new MethodDecl(print, params, null, null, null);
+		printStreamMethods.add((MethodDecl)print);
+
+		// public void println(int n);
+		MemberDecl println = new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), new Identifier("_PrintStream.println", null), null);
+		println = new MethodDecl(println, params, null, null, null);
+		printStreamMethods.add((MethodDecl)println);
+
+		// class _PrintStream
+		ClassDecl printStreamDecl = new ClassDecl(new Identifier("_PrintStream", null), new FieldDeclList(), printStreamMethods, null);
+
+		/*
+		 *  System class and member
+		 */
+		// public static _PrintStream out;
+		FieldDeclList systemFields = new FieldDeclList();
+		FieldDecl out = new FieldDecl(false, true, new ClassType(new Identifier("_PrintStream", null), null), new Identifier("System.out", null), null);
+		systemFields.add(out);
+
+		// class System;
+		ClassDecl systemDecl = new ClassDecl(new Identifier("System", null), systemFields, new MethodDeclList(), null);
+
+		try {
+			set(printStreamDecl);
+			set(print);
+			set(println);
+			set(systemDecl);
+			set(out);
+		} catch (SyntaxErrorException e) {
+			// Shouldn't occur
+		}
 
 		// TODO populate the predefined scope
 		// Should we add the list of miniJava keywords here?
 
-		scopes.add(predefined);
 		openScope();
 	}
 
@@ -59,8 +111,9 @@ public class IdentificationTable {
 		String name = declaration.id.spelling;
 		Declaration decl = null;
 
-		// An identifier in local scope cannot be re-declared in deeper scopes
-		for (int i = LOCAL_SCOPE; i < scopes.size(); i++) {
+		// An identifier in parameter or local scope cannot be re-declared in
+		// deeper scopes
+		for (int i = PARAMETER_SCOPE; i < scopes.size(); i++) {
 			decl = scopes.get(i).get(name);
 			if (decl != null)
 				throw new SyntaxErrorException(name + " was already declared at " + decl.posn);
@@ -93,18 +146,18 @@ public class IdentificationTable {
 	}
 
 	public void display() {
-		Iterator<HashMap<String,Declaration>> it = scopes.iterator();
+		Iterator<HashMap<String, Declaration>> it = scopes.iterator();
 		String padding = "";
 
-		while(it.hasNext()) {
+		while (it.hasNext()) {
 			HashMap<String, Declaration> scope = it.next();
 
 			Iterator<String> its = scope.keySet().iterator();
-			while(its.hasNext()) {
+			while (its.hasNext()) {
 				String id = its.next();
-				System.out.println(padding + id + ": " + scope.get(id));
+				System.out.println(padding + "\"" + id + "\"" + ": " + scope.get(id));
 			}
-			
+
 			padding = padding + "  ";
 		}
 	}
