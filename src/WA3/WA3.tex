@@ -1,0 +1,60 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{fullpage}
+\usepackage{color}
+\usepackage{qtree}
+
+\title{COMP 520: Compilers\\{\bf Written Assignment 3}}
+\author{\bf Shrey Banga\\banga@cs.unc.edu}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{enumerate}
+
+% Question 1
+\item	
+
+% Question 2
+\item 
+	\begin{enumerate}
+	\item
+		$r = r * 2$ \\
+		\Tree 
+		[..
+			{$=$ \\ $\{ \alpha \times \alpha \rightarrow \textrm{Stmt} \}$ } 
+			[.()
+				{$r$ \\ \{Real\}} [.{. \\ (Type assignment fails here)}
+					{$*$ \\ \{Real$ \times $Real$ \rightarrow $Real, \\ Int $\times$ Int $\rightarrow$ Int\}}
+					[.{() \\ \{Real $\times$ Int\}}
+						{$r$ \\ \{Real\}}
+						{$2$ \\ \{Int\}}
+					]
+				]
+			]
+		]
+
+		The type assignment fails as \{Real $\times$ Int\} is not in $*$'s domain.
+
+	\item
+		$i == 2 * i$ \\
+		\Tree 
+		[.{. \\ \{Bool\}}
+			{$== : \{ \underline{\alpha \times \alpha \rightarrow \textrm{Bool}} \}$ \\ $\alpha \rightarrow $ Int } 
+			[.{() : \{Int $\times$ Int\}}
+				{$i$ \\ \{Int\} } [.{. \\ \{Int\}}
+					{$*$ \\ \{Real$ \times $Real$ \rightarrow $Real, \\ \underline{Int $\times$ Int $\rightarrow$ Int}\}}
+					[.{() \\ \{Int $\times$ Int\}}
+						{$2$ \\ \{Int\}}
+						{$i$ \\ \{Int\}}
+					]
+				]
+			]
+		]
+		
+		The type assignment is successful for this AST.
+	\end{enumerate}
+
+\end{enumerate}
+
+\end{document}
