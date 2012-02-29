@@ -13,7 +13,14 @@
 \begin{enumerate}
 
 % Question 1
-\item	
+\item	 This can be efficiently implemented by augmenting the identification table (as a \texttt{HashMap <Identifier, Declaration>}) for the program being compiled as follows:
+	\begin{enumerate}
+	\item \texttt{import P.T}:\\
+	The class declaration for \texttt{T} is inserted into the identification table at class scope. 		\item \texttt{import P.*}:\\
+	All class declarations inside the package \texttt{P} are inserted into the table at class scope.
+	\end{enumerate}
+This can be done in $O(n)$ amortized time for a total of $n$ classes imported. Since these declarations are added in the class scope, any conflicting declarations get reported and the compiler reports an error. This also ensures that conflicts are always reported even if the conflicting classes aren't being used.\par
+Once the identification table has been constructed, it can be used to test the validity of an identifier in a ClassType declaration in constant time, so it is faster than checking each \texttt{import} statement every time a ClassType declaration is encountered.
 
 % Question 2
 \item 
@@ -40,8 +47,8 @@
 		$i == 2 * i$ \\
 		\Tree 
 		[.{. \\ \{Bool\}}
-			{$== : \{ \underline{\alpha \times \alpha \rightarrow \textrm{Bool}} \}$ \\ $\alpha \rightarrow $ Int } 
-			[.{() : \{Int $\times$ Int\}}
+			{$==$ \\ $\{ \underline{\alpha \times \alpha \rightarrow \textrm{Bool}} \}$ \\ $\alpha \leftarrow $ Int } 
+			[.{() \\ \{Int $\times$ Int\}}
 				{$i$ \\ \{Int\} } [.{. \\ \{Int\}}
 					{$*$ \\ \{Real$ \times $Real$ \rightarrow $Real, \\ \underline{Int $\times$ Int $\rightarrow$ Int}\}}
 					[.{() \\ \{Int $\times$ Int\}}
@@ -53,8 +60,41 @@
 		]
 		
 		The type assignment is successful for this AST.
+
+	\item We can create an operator (say $\Delta$) that performs type promotion from Int to Real, i.e. $\Delta$: Int $\rightarrow$ Real. This can be inserted at any point where the existing tuple does not lie in the domain of an operator, but type promotion can transform it into a tuple that lies in the domain of that operator.\par
+	For the expression $(i * (2 + 3)) == (r * 2)$, the AST with type promotions looks as follows:\\
+
 	\end{enumerate}
 
 \end{enumerate}
+		\Tree 
+		[.{. \\ \{Bool\}} !\qsetw{0.1cm}
+			{$==$ \\ $\{ \underline{\alpha \times \alpha \rightarrow \textrm{Bool}} \}$ \\ $\alpha \rightarrow $ Real } !\qsetw{0.1cm}
+			[.{() \\ \{Real $\times$ Real\}}
+				[.{. \\ \{Real\}}
+					{$\Delta$ \\ \{Int $\rightarrow$ Real\}} !\qsetw{0.5cm}
+					[.{. \\ \{Int\}}
+						{$*$ \\ \{Real$ \times $Real$ \rightarrow $Real, \\ \underline{Int $\times$ Int $\rightarrow$ Int}\}}
+						[.{() \\ \{Int $\times$ Int\}}
+							{i \\ \{Int\}}
+							[.{. \\ \{Int\}}
+								{$+$ \\ \{Real$ \times $Real$ \rightarrow $Real, \\ \underline{Int $\times$ Int $\rightarrow$ Int}\}}
+								[.{() \\ \{Int $\times$ Int\}}
+									{$2$ \\ \{Int\}}
+									{$3$ \\ \{Int\}}
+								]
+							]
+						]
+					]
+				] !\qsetw{9.5cm}
+				[.{. \\ \{Real\}}
+					{$*$ \\ \{\underline{Real$ \times $Real$ \rightarrow $Real}, \\ Int $\times$ Int $\rightarrow$ Int\}}
+					[.{() \\ \{Real $\times$ Real\}}
+						{$r$ \\ \{Real\}}
+						{$2$ \\ \{Real\}}
+					]
+				]
+			]
+		]
 
 \end{document}
