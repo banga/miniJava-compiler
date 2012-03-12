@@ -25,6 +25,8 @@ public interface Visitor<ArgType,ResultType> {
     public ResultType visitBaseType(BaseType type, ArgType arg);
     public ResultType visitClassType(ClassType type, ArgType arg);
     public ResultType visitArrayType(ArrayType type, ArgType arg);
+    public ResultType visitStatementType(StatementType type, ArgType arg);
+    public ResultType visitErrorType(ErrorType type, ArgType arg);
     
   // Statements
     public ResultType visitBlockStmt(BlockStmt stmt, ArgType arg);

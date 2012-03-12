@@ -16,6 +16,7 @@ import miniJava.AbstractSyntaxTrees.CallStmt;
 import miniJava.AbstractSyntaxTrees.ClassDecl;
 import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.Declaration;
+import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
@@ -31,6 +32,7 @@ import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.QualifiedRef;
 import miniJava.AbstractSyntaxTrees.RefExpr;
 import miniJava.AbstractSyntaxTrees.Statement;
+import miniJava.AbstractSyntaxTrees.StatementType;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
 import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
@@ -38,7 +40,7 @@ import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
-public class ASTIdentify implements Visitor<IdentificationTable, IdentificationTable> {
+public class ASTIdentify implements Visitor<IdentificationTable, Void> {
 	public int errorCount = 0;
 
 	/**
@@ -48,7 +50,9 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 	 * @return IdentificationTable object
 	 */
 	public IdentificationTable createIdentificationTable(AST ast) {
-		return ast.visit(this, new IdentificationTable());
+		IdentificationTable table = new IdentificationTable();
+		ast.visit(this, table);
+		return table;
 	}
 
 	private void addDeclaration(IdentificationTable table, Declaration declaration) {
@@ -61,11 +65,11 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 
 	private void reportError(String msg) {
 		errorCount++;
-		System.out.println("*** " + msg);
+		System.err.println("*** " + msg);
 	}
 
 	@Override
-	public IdentificationTable visitPackage(Package prog, IdentificationTable table) {
+	public Void visitPackage(Package prog, IdentificationTable table) {
 		Iterator<ClassDecl> it = prog.classDeclList.iterator();
 		ArrayList<Declaration> memberDeclarations = new ArrayList<Declaration>();
 
@@ -73,13 +77,11 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 			ClassDecl cd = it.next();
 			addDeclaration(table, cd);
 
-			IdentificationTable classTable = cd.visit(this, new IdentificationTable());
+			IdentificationTable classTable = new IdentificationTable();
+			cd.visit(this, classTable);
 
-			int scopeLevel = classTable.scopes.size() - 1;
-			if(scopeLevel > IdentificationTable.CLASS_SCOPE) {
-				// Add class members, if any
-				HashMap<String, Declaration> classMembers = classTable.scopes.get(scopeLevel);
-	
+			HashMap<String, Declaration> classMembers = classTable.getClassMembers();
+			if(classMembers != null) {
 				Iterator<String> itm = classMembers.keySet().iterator();
 				while (itm.hasNext()) {
 					Declaration memberDecl = classMembers.get(itm.next());
@@ -93,11 +95,11 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 		for(int i = 0; i < memberDeclarations.size(); i++)
 			addDeclaration(table, memberDeclarations.get(i));
 
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitClassDecl(ClassDecl cd, IdentificationTable table) {
+	public Void visitClassDecl(ClassDecl cd, IdentificationTable table) {
 		table.openScope();
 
 		Iterator<FieldDecl> itf = cd.fieldDeclList.iterator();
@@ -108,17 +110,17 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 		while (itm.hasNext())
 			itm.next().visit(this, table);
 
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitFieldDecl(FieldDecl fd, IdentificationTable table) {
+	public Void visitFieldDecl(FieldDecl fd, IdentificationTable table) {
 		addDeclaration(table, fd);
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitMethodDecl(MethodDecl md, IdentificationTable table) {
+	public Void visitMethodDecl(MethodDecl md, IdentificationTable table) {
 		addDeclaration(table, md);
 
 		// Parameter scope
@@ -139,38 +141,49 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 
 		table.closeScope();
 
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitParameterDecl(ParameterDecl pd, IdentificationTable table) {
+	public Void visitParameterDecl(ParameterDecl pd, IdentificationTable table) {
 		addDeclaration(table, pd);
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitVarDecl(VarDecl decl, IdentificationTable table) {
+	public Void visitVarDecl(VarDecl decl, IdentificationTable table) {
 		addDeclaration(table, decl);
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitBaseType(BaseType type, IdentificationTable table) {
-		return table;
+	public Void visitBaseType(BaseType type, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitClassType(ClassType type, IdentificationTable table) {
-		return table;
+	public Void visitClassType(ClassType type, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitArrayType(ArrayType type, IdentificationTable table) {
-		return table;
+	public Void visitArrayType(ArrayType type, IdentificationTable table) {
+		return null;
+	}
+
+
+	@Override
+	public Void visitStatementType(StatementType type, IdentificationTable arg) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitBlockStmt(BlockStmt stmt, IdentificationTable table) {
+	public Void visitErrorType(ErrorType type, IdentificationTable arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitBlockStmt(BlockStmt stmt, IdentificationTable table) {
 		// nested scope
 		table.openScope();
 
@@ -180,27 +193,27 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 
 		table.closeScope();
 
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitVardeclStmt(VarDeclStmt stmt, IdentificationTable table) {
+	public Void visitVardeclStmt(VarDeclStmt stmt, IdentificationTable table) {
 		stmt.varDecl.visit(this, table);
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitAssignStmt(AssignStmt stmt, IdentificationTable table) {
-		return table;
+	public Void visitAssignStmt(AssignStmt stmt, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitCallStmt(CallStmt stmt, IdentificationTable table) {
-		return table;
+	public Void visitCallStmt(CallStmt stmt, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitIfStmt(IfStmt stmt, IdentificationTable table) {
+	public Void visitIfStmt(IfStmt stmt, IdentificationTable table) {
 		if (stmt.thenStmt instanceof VarDeclStmt) {
 			reportError("Variable declaration cannot be the only statement in a conditional statement at "
 					+ stmt.thenStmt.posn);
@@ -217,82 +230,82 @@ public class ASTIdentify implements Visitor<IdentificationTable, IdentificationT
 			}
 		}
 
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitWhileStmt(WhileStmt stmt, IdentificationTable table) {
+	public Void visitWhileStmt(WhileStmt stmt, IdentificationTable table) {
 		if (stmt.body instanceof VarDeclStmt) {
 			reportError("Variable declaration cannot be the only statement in a while statement at " + stmt.body.posn);
 		} else {
 			stmt.body.visit(this, table);
 		}
 
-		return table;
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitUnaryExpr(UnaryExpr expr, IdentificationTable table) {
-		return table;
+	public Void visitUnaryExpr(UnaryExpr expr, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitBinaryExpr(BinaryExpr expr, IdentificationTable table) {
-		return table;
+	public Void visitBinaryExpr(BinaryExpr expr, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitRefExpr(RefExpr expr, IdentificationTable table) {
-		return table;
+	public Void visitRefExpr(RefExpr expr, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitCallExpr(CallExpr expr, IdentificationTable table) {
-		return table;
+	public Void visitCallExpr(CallExpr expr, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitLiteralExpr(LiteralExpr expr, IdentificationTable table) {
-		return table;
+	public Void visitLiteralExpr(LiteralExpr expr, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
-		return table;
+	public Void visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitNewArrayExpr(NewArrayExpr expr, IdentificationTable table) {
-		return table;
+	public Void visitNewArrayExpr(NewArrayExpr expr, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitQualifiedRef(QualifiedRef ref, IdentificationTable table) {
-		return table;
+	public Void visitQualifiedRef(QualifiedRef ref, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitIndexedRef(IndexedRef ref, IdentificationTable table) {
-		return table;
+	public Void visitIndexedRef(IndexedRef ref, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitIdentifier(Identifier id, IdentificationTable table) {
-		return table;
+	public Void visitIdentifier(Identifier id, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitOperator(Operator op, IdentificationTable table) {
-		return table;
+	public Void visitOperator(Operator op, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitIntLiteral(IntLiteral num, IdentificationTable table) {
-		return table;
+	public Void visitIntLiteral(IntLiteral num, IdentificationTable table) {
+		return null;
 	}
 
 	@Override
-	public IdentificationTable visitBooleanLiteral(BooleanLiteral bool, IdentificationTable table) {
-		return table;
+	public Void visitBooleanLiteral(BooleanLiteral bool, IdentificationTable table) {
+		return null;
 	}
 }

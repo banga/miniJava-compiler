@@ -34,32 +34,36 @@ public class IdentificationTable {
 	public IdentificationTable() {
 		openScope();
 
-		/* 
-		 * _PrintStream class and methods 
+		/*
+		 * _PrintStream class and methods
 		 */
 		MethodDeclList printStreamMethods = new MethodDeclList();
 		ParameterDeclList params = new ParameterDeclList();
 		params.add(new ParameterDecl(new BaseType(TypeKind.INT, null), new Identifier("n", null), null));
 
 		// public void print(int n);
-		MemberDecl print = new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), new Identifier("_PrintStream.print", null), null);
+		MemberDecl print = new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), new Identifier(
+				"_PrintStream.print", null), null);
 		print = new MethodDecl(print, params, null, null, null);
-		printStreamMethods.add((MethodDecl)print);
+		printStreamMethods.add((MethodDecl) print);
 
 		// public void println(int n);
-		MemberDecl println = new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), new Identifier("_PrintStream.println", null), null);
+		MemberDecl println = new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), new Identifier(
+				"_PrintStream.println", null), null);
 		println = new MethodDecl(println, params, null, null, null);
-		printStreamMethods.add((MethodDecl)println);
+		printStreamMethods.add((MethodDecl) println);
 
 		// class _PrintStream
-		ClassDecl printStreamDecl = new ClassDecl(new Identifier("_PrintStream", null), new FieldDeclList(), printStreamMethods, null);
+		ClassDecl printStreamDecl = new ClassDecl(new Identifier("_PrintStream", null), new FieldDeclList(),
+				printStreamMethods, null);
 
 		/*
-		 *  System class and member
+		 * System class and member
 		 */
 		// public static _PrintStream out;
 		FieldDeclList systemFields = new FieldDeclList();
-		FieldDecl out = new FieldDecl(false, true, new ClassType(new Identifier("_PrintStream", null), null), new Identifier("System.out", null), null);
+		FieldDecl out = new FieldDecl(false, true, new ClassType(new Identifier("_PrintStream", null), null),
+				new Identifier("System.out", null), null);
 		systemFields.add(out);
 
 		// class System;
@@ -74,9 +78,6 @@ public class IdentificationTable {
 		} catch (SyntaxErrorException e) {
 			// Shouldn't occur
 		}
-
-		// TODO populate the predefined scope
-		// Should we add the list of miniJava keywords here?
 
 		openScope();
 	}
@@ -145,6 +146,26 @@ public class IdentificationTable {
 		scopes.remove(scopes.size() - 1);
 	}
 
+	/**
+	 * Returns only class declarations
+	 */
+	public HashMap<String, Declaration> getClasses() {
+		if (scopes.size() - 1 >= IdentificationTable.CLASS_SCOPE)
+			return scopes.get(IdentificationTable.CLASS_SCOPE);
+		return null;
+	}
+
+	/**
+	 * Returns elements at the class member scope
+	 * 
+	 * @return HashMap<String, Declaration>
+	 */
+	public HashMap<String, Declaration> getClassMembers() {
+		if (scopes.size() - 1 >= IdentificationTable.MEMBER_SCOPE)
+			return scopes.get(IdentificationTable.MEMBER_SCOPE);
+		return null;
+	}
+	
 	public void display() {
 		Iterator<HashMap<String, Declaration>> it = scopes.iterator();
 		String padding = "";
