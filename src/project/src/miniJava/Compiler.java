@@ -7,7 +7,7 @@ import java.io.IOException;
 
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
-import miniJava.ContextualAnalyzer.ASTIdentify;
+import miniJava.ContextualAnalyzer.ASTIdentifyMembers;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
@@ -45,7 +45,7 @@ public class Compiler {
 			ASTDisplay display = new ASTDisplay();
 			display.showTree(ast);
 
-//			ASTIdentify identify = new ASTIdentify();
+//			ASTIdentifyMembers identify = new ASTIdentifyMembers();
 //			identify.createIdentificationTable(ast).display();
 //			if(identify.errorCount > 0)
 //				System.exit(4);

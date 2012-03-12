@@ -40,7 +40,7 @@ import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
-public class ASTIdentify implements Visitor<IdentificationTable, Void> {
+public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	public int errorCount = 0;
 
 	/**
