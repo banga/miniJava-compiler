@@ -8,9 +8,9 @@ package miniJava.AbstractSyntaxTrees;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public abstract class LocalDecl extends Declaration {
-	
-	public LocalDecl(Type t, Identifier id, SourcePosition posn){
-		super(id,posn);
+
+	public LocalDecl(Type t, Identifier id, SourcePosition posn) {
+		super(id, posn);
 		this.type = t;
 	}
 

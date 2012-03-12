@@ -12,6 +12,6 @@ public abstract class Declaration extends AST {
 		super(posn);
 		this.id = id;
 	}
-	
+
 	public Identifier id;
 }

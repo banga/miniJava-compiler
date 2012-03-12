@@ -5,21 +5,21 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-import  miniJava.SyntacticAnalyzer.SourcePosition;
+import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ClassDecl extends Declaration {
 
-  public ClassDecl(Identifier id, FieldDeclList fdl, MethodDeclList mdl, SourcePosition posn) {
-	  super(id,posn);
-	  fieldDeclList = fdl;
-	  methodDeclList = mdl;
-  }
-  
-  public <A,R> R visit(Visitor<A, R> v, A o) {
-      return v.visitClassDecl(this, o);
-  }
-      
-  public FieldDeclList fieldDeclList;
-  public MethodDeclList methodDeclList;
-  
+	public ClassDecl(Identifier id, FieldDeclList fdl, MethodDeclList mdl, SourcePosition posn) {
+		super(id, posn);
+		fieldDeclList = fdl;
+		methodDeclList = mdl;
+	}
+
+	public <A, R> R visit(Visitor<A, R> v, A o) {
+		return v.visitClassDecl(this, o);
+	}
+
+	public FieldDeclList fieldDeclList;
+	public MethodDeclList methodDeclList;
+
 }

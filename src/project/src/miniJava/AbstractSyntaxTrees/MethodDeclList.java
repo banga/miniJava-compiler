@@ -7,17 +7,16 @@ package miniJava.AbstractSyntaxTrees;
 
 import java.util.*;
 
-public class MethodDeclList implements Iterable<MethodDecl>
-{
+public class MethodDeclList implements Iterable<MethodDecl> {
 	public MethodDeclList() {
 		methodDeclList = new ArrayList<MethodDecl>();
-	}   
+	}
 
-	public void add(MethodDecl cd){
+	public void add(MethodDecl cd) {
 		methodDeclList.add(cd);
 	}
 
-	public MethodDecl get(int i){
+	public MethodDecl get(int i) {
 		return methodDeclList.get(i);
 	}
 
@@ -31,4 +30,3 @@ public class MethodDeclList implements Iterable<MethodDecl>
 
 	private List<MethodDecl> methodDeclList;
 }
-
