@@ -26,8 +26,15 @@ import miniJava.SyntacticAnalyzer.SyntaxErrorException;
  */
 public class IdentificationTable {
 	public static final int PREDEFINED_SCOPE = 0, CLASS_SCOPE = 1, MEMBER_SCOPE = 2, PARAMETER_SCOPE = 3,
-			LOCAL_SCOPE = 4;
+			LOCAL_SCOPE = 4, INVALID_SCOPE = -1;
 
+	public static final String PRINTSTREAM = "_PrintStream";
+	public static final String PRINTSTREAM_PRINT = "_PrintStream.print";
+	public static final String PRINTSTREAM_PRINTLN = "_PrintStream.println";
+
+	public static final String SYSTEM = "System";
+	public static final String SYSTEM_OUT = "System.out";
+	
 	// A stack of tables for each scope
 	List<HashMap<String, Declaration>> scopes = new ArrayList<HashMap<String, Declaration>>();
 
@@ -39,40 +46,45 @@ public class IdentificationTable {
 		 */
 		MethodDeclList printStreamMethods = new MethodDeclList();
 		ParameterDeclList params = new ParameterDeclList();
-		params.add(new ParameterDecl(new BaseType(TypeKind.INT, null), new Identifier("n", null), null));
+		params.add(new ParameterDecl(new BaseType(TypeKind.INT, "int", null), new Identifier("n", null), null));
 
 		// public void print(int n);
-		MemberDecl print = new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), new Identifier(
-				"_PrintStream.print", null), null);
+		MemberDecl print = new FieldDecl(false, false, new BaseType(TypeKind.VOID, "void", null), new Identifier(
+				PRINTSTREAM_PRINT, null), null);
 		print = new MethodDecl(print, params, null, null, null);
 		printStreamMethods.add((MethodDecl) print);
 
 		// public void println(int n);
-		MemberDecl println = new FieldDecl(false, false, new BaseType(TypeKind.VOID, null), new Identifier(
-				"_PrintStream.println", null), null);
+		MemberDecl println = new FieldDecl(false, false, new BaseType(TypeKind.VOID, "void", null), new Identifier(
+				PRINTSTREAM_PRINTLN, null), null);
 		println = new MethodDecl(println, params, null, null, null);
 		printStreamMethods.add((MethodDecl) println);
 
 		// class _PrintStream
-		ClassDecl printStreamDecl = new ClassDecl(new Identifier("_PrintStream", null), new FieldDeclList(),
+		ClassDecl printStreamDecl = new ClassDecl(new Identifier(PRINTSTREAM, null), new FieldDeclList(),
 				printStreamMethods, null);
+
+		try {
+			set(printStreamDecl);
+			set(print);
+			set(println);
+		} catch (SyntaxErrorException e) {
+			// Shouldn't occur
+		}
 
 		/*
 		 * System class and member
 		 */
 		// public static _PrintStream out;
 		FieldDeclList systemFields = new FieldDeclList();
-		FieldDecl out = new FieldDecl(false, true, new ClassType(new Identifier("_PrintStream", null), null),
-				new Identifier("System.out", null), null);
+		FieldDecl out = new FieldDecl(false, true, new ClassType(new Identifier(PRINTSTREAM, null), null),
+				new Identifier(SYSTEM_OUT, null), null);
 		systemFields.add(out);
 
 		// class System;
-		ClassDecl systemDecl = new ClassDecl(new Identifier("System", null), systemFields, new MethodDeclList(), null);
+		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), systemFields, new MethodDeclList(), null);
 
 		try {
-			set(printStreamDecl);
-			set(print);
-			set(println);
 			set(systemDecl);
 			set(out);
 		} catch (SyntaxErrorException e) {
@@ -98,6 +110,21 @@ public class IdentificationTable {
 				break;
 		}
 		return decl;
+	}
+
+	/**
+	 * Returns the scope of an identifier
+	 * 
+	 * @param name
+	 *            name of the identifier
+	 * @return <code>scope</code> of the identifier if in scope,
+	 */
+	public int getScope(String name) {
+		for (int i = scopes.size() - 1; i >= 0; i--) {
+			if (scopes.get(i).containsKey(name))
+				return i;
+		}
+		return INVALID_SCOPE;
 	}
 
 	/**
@@ -147,6 +174,27 @@ public class IdentificationTable {
 	}
 
 	/**
+	 * Link declaration of this identifier and return its scope
+	 * 
+	 * @param id
+	 * @return the scope of this identifier
+	 */
+	public int linkDeclaration(Identifier id) {
+		Declaration decl;
+		for (int i = scopes.size() - 1; i >= 0; i--) {
+			decl = scopes.get(i).get(id.spelling);
+			if (decl != null) {
+				id.declaration = decl;
+				if (i >= LOCAL_SCOPE) {
+					return LOCAL_SCOPE;
+				}
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/**
 	 * Returns only class declarations
 	 */
 	public HashMap<String, Declaration> getClasses() {
@@ -165,7 +213,7 @@ public class IdentificationTable {
 			return scopes.get(IdentificationTable.MEMBER_SCOPE);
 		return null;
 	}
-	
+
 	public void display() {
 		Iterator<HashMap<String, Declaration>> it = scopes.iterator();
 		String padding = "";

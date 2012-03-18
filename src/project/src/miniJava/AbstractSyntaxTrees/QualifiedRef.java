@@ -28,4 +28,10 @@ public class QualifiedRef extends Reference {
 
 	public boolean thisRelative;
 	public IdentifierList qualifierList;
+	
+	@Override
+	public Declaration getDeclaration() {
+		// TODO: remove before submission
+		throw new RuntimeException("I do declare, QualifiedRef's getDeclaration should never be called!");
+	}
 }

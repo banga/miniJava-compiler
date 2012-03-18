@@ -11,4 +11,11 @@ public abstract class Reference extends AST {
 	public Reference(SourcePosition posn) {
 		super(posn);
 	}
+
+	/**
+	 * Return the declaration of the entity being referenced
+	 * 
+	 * @return
+	 */
+	public abstract Declaration getDeclaration();
 }

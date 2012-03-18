@@ -9,9 +9,16 @@ package miniJava.AbstractSyntaxTrees;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ArrayType extends Type {
+	public static final ArrayType STRING_ARRAY_TYPE = new ArrayType(UnsupportedType.STRING_TYPE, "String[]", null);
 
-	public ArrayType(Type eltType, SourcePosition posn) {
-		super(posn);
+	/**
+	 * Changed Type to store spelling of type for type-checking.
+	 * 
+	 * @param spelling
+	 * @param posn
+	 */
+	public ArrayType(Type eltType, String spelling, SourcePosition posn) {
+		super(spelling, posn);
 		typeKind = TypeKind.ARRAY;
 		this.eltType = eltType;
 	}
@@ -22,6 +29,15 @@ public class ArrayType extends Type {
 
 	public String toString() {
 		return eltType.toString() + "[]";
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof ArrayType) {
+			return eltType.equals(((ArrayType) obj).eltType);
+		}
+
+		return false;
 	}
 
 	public Type eltType;

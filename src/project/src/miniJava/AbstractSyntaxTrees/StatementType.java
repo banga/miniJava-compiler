@@ -4,8 +4,8 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class StatementType extends Type {
 
-	public StatementType(SourcePosition posn) {
-		super(posn);
+	public StatementType(String spelling, SourcePosition posn) {
+		super(spelling, posn);
 	}
 
 	@Override

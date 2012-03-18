@@ -19,6 +19,11 @@ public class IndexedRef extends Reference {
 		return v.visitIndexedRef(this, o);
 	}
 
+	@Override
+	public Declaration getDeclaration() {
+		return ref.getDeclaration();
+	}
+
 	public Reference ref;
 	public Expression indexExpr;
 }

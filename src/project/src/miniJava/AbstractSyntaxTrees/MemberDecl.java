@@ -10,17 +10,15 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 public abstract class MemberDecl extends Declaration {
 
 	public MemberDecl(boolean isPrivate, boolean isStatic, Type t, Identifier id, SourcePosition posn) {
-		super(id, posn);
+		super(id, t, posn);
 		this.isPrivate = isPrivate;
 		this.isStatic = isStatic;
-		this.type = t;
 	}
 
 	public MemberDecl(MemberDecl md, SourcePosition posn) {
-		super(md.id, posn);
+		super(md.id, md.type, posn);
 		this.isPrivate = md.isPrivate;
 		this.isStatic = md.isStatic;
-		this.type = md.type;
 	}
 
 	public String toString() {
@@ -29,5 +27,4 @@ public abstract class MemberDecl extends Declaration {
 
 	public boolean isPrivate;
 	public boolean isStatic;
-	public Type type;
 }

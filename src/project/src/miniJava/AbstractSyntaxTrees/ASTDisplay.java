@@ -5,6 +5,7 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+
 /**
  * Display AST in text form
  * 
@@ -63,14 +64,16 @@ public class ASTDisplay implements Visitor<String, Object> {
 	}
 
 	public Object visitFieldDecl(FieldDecl f, String arg) {
-		show(arg, "(" + (f.isPrivate ? "private" : "public") + (f.isStatic ? " static) " : ") ") + f.toString());
+		show(arg, "(" + (f.isPrivate ? "private" : "public")
+				+ (f.isStatic ? " static) " : ") ") + f.toString());
 		f.type.visit(this, indent(arg));
 		f.id.visit(this, indent(arg));
 		return null;
 	}
 
 	public Object visitMethodDecl(MethodDecl m, String arg) {
-		show(arg, "(" + (m.isPrivate ? "private" : "public") + (m.isStatic ? " static) " : ") ") + m.toString());
+		show(arg, "(" + (m.isPrivate ? "private" : "public")
+				+ (m.isStatic ? " static) " : ") ") + m.toString());
 		m.type.visit(this, indent(arg));
 		m.id.visit(this, indent(arg));
 		ParameterDeclList pdl = m.parameterDeclList;
@@ -128,6 +131,11 @@ public class ASTDisplay implements Visitor<String, Object> {
 	}
 
 	public Object visitErrorType(ErrorType type, String arg) {
+		show(arg, type);
+		return null;
+	}
+
+	public Object visitUnsupportedType(UnsupportedType type, String arg) {
 		show(arg, type);
 		return null;
 	}
@@ -253,6 +261,68 @@ public class ASTDisplay implements Visitor<String, Object> {
 		for (int i = 1; i < ql.size(); i++) {
 			ql.get(i).visit(this, pfx);
 		}
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param qr
+	 * @param arg
+	 * @return
+	 */
+	public Object visitDeRef(DeRef dr, String arg) {
+		show(arg, dr);
+		dr.classReference.visit(this, indent(arg));
+		dr.memberReference.visit(this, indent(arg));
+
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param qr
+	 * @param arg
+	 * @return
+	 */
+	public Object visitThisRef(ThisRef tr, String arg) {
+		show(arg, tr);
+		show(arg, "  this");
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param qr
+	 * @param arg
+	 * @return
+	 */
+	public Object visitClassRef(ClassRef cr, String arg) {
+		show(arg, cr);
+		cr.identifier.visit(this, indent(arg));
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param qr
+	 * @param arg
+	 * @return
+	 */
+	public Object visitMemberRef(MemberRef mr, String arg) {
+		show(arg, mr);
+		mr.identifier.visit(this, indent(arg));
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param qr
+	 * @param arg
+	 * @return
+	 */
+	public Object visitLocalRef(LocalRef lr, String arg) {
+		show(arg, lr);
+		lr.identifier.visit(this, indent(arg));
 		return null;
 	}
 

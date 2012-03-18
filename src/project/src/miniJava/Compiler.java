@@ -8,6 +8,10 @@ import java.io.IOException;
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.ContextualAnalyzer.ASTIdentifyMembers;
+import miniJava.ContextualAnalyzer.ASTReplaceReference;
+import miniJava.ContextualAnalyzer.ASTTypeCheck;
+import miniJava.ContextualAnalyzer.IdentificationTable;
+import miniJava.ContextualAnalyzer.Utilities;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
@@ -42,13 +46,27 @@ public class Compiler {
 			Parser parser = new Parser(new FileInputStream(args[0]));
 			AST ast = parser.parseProgram();
 
+			/* Identification */
+			ASTIdentifyMembers identify = new ASTIdentifyMembers();
+			IdentificationTable table = identify.createIdentificationTable(ast);
+			table.display();
+
+			Utilities.exitOnError();
+
+			/* AST modification for QualifiedRefs */
+			ASTReplaceReference replace = new ASTReplaceReference();
+			replace.visitPackage((miniJava.AbstractSyntaxTrees.Package) ast, table);
+
+			Utilities.exitOnError();
+
+			/* Type checking */
+			ASTTypeCheck typecheck = new ASTTypeCheck();
+			typecheck.visitPackage((miniJava.AbstractSyntaxTrees.Package) ast, null);
+
+			Utilities.exitOnError();
+
 			ASTDisplay display = new ASTDisplay();
 			display.showTree(ast);
-
-//			ASTIdentifyMembers identify = new ASTIdentifyMembers();
-//			identify.createIdentificationTable(ast).display();
-//			if(identify.errorCount > 0)
-//				System.exit(4);
 
 		} catch (SyntaxErrorException e) {
 			// e.printStackTrace();

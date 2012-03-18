@@ -5,7 +5,7 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 public class ErrorType extends Type {
 
 	public ErrorType(SourcePosition posn) {
-		super(posn);
+		super("Error", posn);
 	}
 
 	@Override

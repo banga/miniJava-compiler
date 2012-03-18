@@ -14,7 +14,9 @@ import miniJava.AbstractSyntaxTrees.BooleanLiteral;
 import miniJava.AbstractSyntaxTrees.CallExpr;
 import miniJava.AbstractSyntaxTrees.CallStmt;
 import miniJava.AbstractSyntaxTrees.ClassDecl;
+import miniJava.AbstractSyntaxTrees.ClassRef;
 import miniJava.AbstractSyntaxTrees.ClassType;
+import miniJava.AbstractSyntaxTrees.DeRef;
 import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
@@ -23,6 +25,8 @@ import miniJava.AbstractSyntaxTrees.IfStmt;
 import miniJava.AbstractSyntaxTrees.IndexedRef;
 import miniJava.AbstractSyntaxTrees.IntLiteral;
 import miniJava.AbstractSyntaxTrees.LiteralExpr;
+import miniJava.AbstractSyntaxTrees.LocalRef;
+import miniJava.AbstractSyntaxTrees.MemberRef;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
@@ -33,15 +37,17 @@ import miniJava.AbstractSyntaxTrees.QualifiedRef;
 import miniJava.AbstractSyntaxTrees.RefExpr;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.StatementType;
+import miniJava.AbstractSyntaxTrees.ThisRef;
+import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
+import miniJava.AbstractSyntaxTrees.UnsupportedType;
 import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
-import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
 public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
-	public int errorCount = 0;
+	private boolean foundMainMethod = false;
 
 	/**
 	 * Creates an identification table for the program
@@ -55,19 +61,6 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 		return table;
 	}
 
-	private void addDeclaration(IdentificationTable table, Declaration declaration) {
-		try {
-			table.set(declaration);
-		} catch (SyntaxErrorException e) {
-			reportError(e.getMessage());
-		}
-	}
-
-	private void reportError(String msg) {
-		errorCount++;
-		System.err.println("*** " + msg);
-	}
-
 	@Override
 	public Void visitPackage(Package prog, IdentificationTable table) {
 		Iterator<ClassDecl> it = prog.classDeclList.iterator();
@@ -75,13 +68,13 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 		while (it.hasNext()) {
 			ClassDecl cd = it.next();
-			addDeclaration(table, cd);
+			Utilities.addDeclaration(table, cd);
 
 			IdentificationTable classTable = new IdentificationTable();
 			cd.visit(this, classTable);
 
 			HashMap<String, Declaration> classMembers = classTable.getClassMembers();
-			if(classMembers != null) {
+			if (classMembers != null) {
 				Iterator<String> itm = classMembers.keySet().iterator();
 				while (itm.hasNext()) {
 					Declaration memberDecl = classMembers.get(itm.next());
@@ -90,10 +83,13 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 				}
 			}
 		}
-		
+
 		table.openScope();
-		for(int i = 0; i < memberDeclarations.size(); i++)
-			addDeclaration(table, memberDeclarations.get(i));
+		for (int i = 0; i < memberDeclarations.size(); i++)
+			Utilities.addDeclaration(table, memberDeclarations.get(i));
+
+		if (!foundMainMethod)
+			Utilities.reportError("Did not find a public static void main(String[]) method", prog.posn);
 
 		return null;
 	}
@@ -115,13 +111,37 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitFieldDecl(FieldDecl fd, IdentificationTable table) {
-		addDeclaration(table, fd);
+		if (fd.isStatic) {
+			Utilities.reportError("Static fields are not allowed", fd.posn);
+		} else {
+			if (fd.type.typeKind == TypeKind.VOID) {
+				Utilities.reportError("void is an invalid type for the field " + fd.id.spelling, fd.posn);
+			} else {
+				Utilities.addDeclaration(table, fd);
+			}
+		}
 		return null;
 	}
 
 	@Override
 	public Void visitMethodDecl(MethodDecl md, IdentificationTable table) {
-		addDeclaration(table, md);
+		if (md.isStatic) {
+			// The only static method allowed is
+			// public static void main(String[])
+			if (!foundMainMethod && !md.isPrivate && md.id.spelling.equals("main") && md.parameterDeclList.size() == 1) {
+				ParameterDecl param = md.parameterDeclList.get(0);
+				if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
+					foundMainMethod = true;
+					Utilities.addDeclaration(table, md);
+				}
+			}
+
+			if (!foundMainMethod)
+				Utilities.reportError("There should be exactly one static method: public static void main(String[])",
+						md.posn);
+		} else {
+			Utilities.addDeclaration(table, md);
+		}
 
 		// Parameter scope
 		table.openScope();
@@ -146,13 +166,15 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitParameterDecl(ParameterDecl pd, IdentificationTable table) {
-		addDeclaration(table, pd);
+		if (pd.type.typeKind == TypeKind.VOID)
+			Utilities.reportError("void is an invalid type for the variable " + pd.id.spelling, pd.posn);
 		return null;
 	}
 
 	@Override
-	public Void visitVarDecl(VarDecl decl, IdentificationTable table) {
-		addDeclaration(table, decl);
+	public Void visitVarDecl(VarDecl vd, IdentificationTable table) {
+		if (vd.type.typeKind == TypeKind.VOID)
+			Utilities.reportError("void is an invalid type for the variable " + vd.id.spelling, vd.posn);
 		return null;
 	}
 
@@ -171,14 +193,18 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 		return null;
 	}
 
-
 	@Override
-	public Void visitStatementType(StatementType type, IdentificationTable arg) {
+	public Void visitStatementType(StatementType type, IdentificationTable table) {
 		return null;
 	}
 
 	@Override
-	public Void visitErrorType(ErrorType type, IdentificationTable arg) {
+	public Void visitErrorType(ErrorType type, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public Void visitUnsupportedType(UnsupportedType type, IdentificationTable table) {
 		return null;
 	}
 
@@ -204,6 +230,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitAssignStmt(AssignStmt stmt, IdentificationTable table) {
+		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -215,16 +242,16 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	@Override
 	public Void visitIfStmt(IfStmt stmt, IdentificationTable table) {
 		if (stmt.thenStmt instanceof VarDeclStmt) {
-			reportError("Variable declaration cannot be the only statement in a conditional statement at "
-					+ stmt.thenStmt.posn);
+			Utilities.reportError("Variable declaration cannot be the only statement in a conditional statement",
+					stmt.thenStmt.posn);
 		} else {
 			stmt.thenStmt.visit(this, table);
 		}
 
 		if (stmt.elseStmt != null) {
 			if (stmt.elseStmt instanceof VarDeclStmt) {
-				reportError("Variable declaration cannot be the only statement in a conditional statement at "
-						+ stmt.elseStmt.posn);
+				Utilities.reportError("Variable declaration cannot be the only statement in a conditional statement",
+						stmt.elseStmt.posn);
 			} else {
 				stmt.elseStmt.visit(this, table);
 			}
@@ -236,7 +263,8 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	@Override
 	public Void visitWhileStmt(WhileStmt stmt, IdentificationTable table) {
 		if (stmt.body instanceof VarDeclStmt) {
-			reportError("Variable declaration cannot be the only statement in a while statement at " + stmt.body.posn);
+			Utilities.reportError("Variable declaration cannot be the only statement in a while statement",
+					stmt.body.posn);
 		} else {
 			stmt.body.visit(this, table);
 		}
@@ -306,6 +334,31 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitBooleanLiteral(BooleanLiteral bool, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public Void visitThisRef(ThisRef ref, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public Void visitLocalRef(LocalRef ref, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public Void visitClassRef(ClassRef ref, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public Void visitDeRef(DeRef ref, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public Void visitMemberRef(MemberRef ref, IdentificationTable table) {
 		return null;
 	}
 }

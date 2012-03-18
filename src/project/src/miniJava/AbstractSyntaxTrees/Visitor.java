@@ -35,6 +35,8 @@ public interface Visitor<ArgType, ResultType> {
 	public ResultType visitStatementType(StatementType type, ArgType arg);
 
 	public ResultType visitErrorType(ErrorType type, ArgType arg);
+	
+	public ResultType visitUnsupportedType(UnsupportedType type, ArgType arg);
 
 	// Statements
 	public ResultType visitBlockStmt(BlockStmt stmt, ArgType arg);
@@ -66,6 +68,16 @@ public interface Visitor<ArgType, ResultType> {
 
 	// References
 	public ResultType visitQualifiedRef(QualifiedRef ref, ArgType arg);
+
+	public ResultType visitThisRef(ThisRef ref, ArgType arg);
+	
+	public ResultType visitLocalRef(LocalRef ref, ArgType arg);
+	
+	public ResultType visitClassRef(ClassRef ref, ArgType arg);
+	
+	public ResultType visitMemberRef(MemberRef ref, ArgType arg);
+	
+	public ResultType visitDeRef(DeRef ref, ArgType arg);
 
 	public ResultType visitIndexedRef(IndexedRef ref, ArgType arg);
 

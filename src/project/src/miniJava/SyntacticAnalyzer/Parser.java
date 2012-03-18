@@ -41,6 +41,7 @@ import miniJava.AbstractSyntaxTrees.StatementList;
 import miniJava.AbstractSyntaxTrees.Type;
 import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
+import miniJava.AbstractSyntaxTrees.UnsupportedType;
 import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
@@ -228,18 +229,24 @@ public class Parser {
 	private Type parseType() throws SyntaxErrorException {
 		Type type;
 		SourcePosition typePos = currentToken.position;
-
+		
 		switch (currentToken.type) {
 		case INT:
 		case IDENTIFIER:
 			switch (currentToken.type) {
 			case INT:
-				type = new BaseType(TypeKind.INT, typePos);
+				type = new BaseType(TypeKind.INT, currentToken.spelling, typePos);
 				break;
 
 			case IDENTIFIER:
 				Identifier typeId = new Identifier(currentToken.spelling, typePos);
-				type = new ClassType(typeId, typePos);
+	
+				// String is unsupported
+				if(currentToken.spelling.equals("String")) {
+					type = UnsupportedType.STRING_TYPE;
+				} else {
+					type = new ClassType(typeId, typePos);
+				}
 				break;
 
 			default:
@@ -250,7 +257,7 @@ public class Parser {
 				// ArrayType
 				consume();
 				expect(TokenType.RSQUARE);
-				type = new ArrayType(type, typePos);
+				type = new ArrayType(type, currentToken.spelling, typePos);				
 			}
 			break;
 
@@ -258,13 +265,13 @@ public class Parser {
 		case VOID:
 			switch (currentToken.type) {
 			case BOOLEAN:
-				type = new BaseType(TypeKind.BOOLEAN, typePos);
+				type = new BaseType(TypeKind.BOOLEAN, currentToken.spelling, typePos);
 				break;
 			case VOID:
-				type = new BaseType(TypeKind.VOID, typePos);
+				type = new BaseType(TypeKind.VOID, currentToken.spelling, typePos);
 				break;
 			default:
-				throw new SyntaxErrorException(currentToken);
+				throw new SyntaxErrorException(currentToken); 
 			}
 			consume();
 			break;
@@ -272,7 +279,7 @@ public class Parser {
 		default:
 			throw new SyntaxErrorException("expected a Type, found ", currentToken);
 		}
-
+ 
 		return type;
 	}
 
@@ -415,12 +422,12 @@ public class Parser {
 			break;
 
 		case INT:
-			Type intVarDeclType = new BaseType(TypeKind.INT, currentToken.position);
+			Type intVarDeclType = new BaseType(TypeKind.INT, currentToken.spelling, currentToken.position);
 			consume();
 			// int[] id = Expression;
 			if (currentToken.type == TokenType.LSQUARE) {
 				consume();
-				intVarDeclType = new ArrayType(intVarDeclType, intVarDeclType.posn);
+				intVarDeclType = new ArrayType(intVarDeclType, intVarDeclType.spelling, intVarDeclType.posn);
 				expect(TokenType.RSQUARE);
 			}
 			Identifier intVarDeclId = new Identifier(currentToken.spelling, currentToken.position);
@@ -496,7 +503,7 @@ public class Parser {
 				if (currentToken.type == TokenType.RSQUARE) {
 					// id[] id = Expression; //VarDeclStmt
 					Type idType = new ClassType(id1, id1.posn);
-					Type idArrType = new ArrayType(idType, idType.posn);
+					Type idArrType = new ArrayType(idType, idType.spelling, idType.posn);
 					consume();
 					Identifier id2 = new Identifier(currentToken.spelling, currentToken.position);
 					expect(TokenType.IDENTIFIER);
@@ -782,7 +789,7 @@ public class Parser {
 			switch (currentToken.type) {
 			case INT:
 				// new int [ Expression ]
-				newType = new BaseType(TypeKind.INT, currentToken.position);
+				newType = new BaseType(TypeKind.INT,currentToken.spelling, currentToken.position);
 				consume();
 				expect(TokenType.LSQUARE);
 				arrayExpr = parseExpression();
