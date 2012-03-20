@@ -17,7 +17,6 @@ import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.MethodDeclList;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.ParameterDeclList;
-import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
 /**
@@ -29,12 +28,12 @@ public class IdentificationTable {
 			LOCAL_SCOPE = 4, INVALID_SCOPE = -1;
 
 	public static final String PRINTSTREAM = "_PrintStream";
-	public static final String PRINTSTREAM_PRINT = "_PrintStream.print";
-	public static final String PRINTSTREAM_PRINTLN = "_PrintStream.println";
+	public static final String PRINTSTREAM_PRINT = "print";
+	public static final String PRINTSTREAM_PRINTLN = "println";
 
 	public static final String SYSTEM = "System";
-	public static final String SYSTEM_OUT = "System.out";
-	
+	public static final String SYSTEM_OUT = "out";
+
 	// A stack of tables for each scope
 	List<HashMap<String, Declaration>> scopes = new ArrayList<HashMap<String, Declaration>>();
 
@@ -46,17 +45,17 @@ public class IdentificationTable {
 		 */
 		MethodDeclList printStreamMethods = new MethodDeclList();
 		ParameterDeclList params = new ParameterDeclList();
-		params.add(new ParameterDecl(new BaseType(TypeKind.INT, "int", null), new Identifier("n", null), null));
+		params.add(new ParameterDecl(BaseType.INT_TYPE, new Identifier("n", null), null));
 
 		// public void print(int n);
-		MemberDecl print = new FieldDecl(false, false, new BaseType(TypeKind.VOID, "void", null), new Identifier(
-				PRINTSTREAM_PRINT, null), null);
+		MemberDecl print = new FieldDecl(false, false, BaseType.VOID_TYPE, new Identifier(PRINTSTREAM_PRINT, null),
+				null);
 		print = new MethodDecl(print, params, null, null, null);
 		printStreamMethods.add((MethodDecl) print);
 
 		// public void println(int n);
-		MemberDecl println = new FieldDecl(false, false, new BaseType(TypeKind.VOID, "void", null), new Identifier(
-				PRINTSTREAM_PRINTLN, null), null);
+		MemberDecl println = new FieldDecl(false, false, BaseType.VOID_TYPE, new Identifier(PRINTSTREAM_PRINTLN, null),
+				null);
 		println = new MethodDecl(println, params, null, null, null);
 		printStreamMethods.add((MethodDecl) println);
 
@@ -66,8 +65,6 @@ public class IdentificationTable {
 
 		try {
 			set(printStreamDecl);
-			set(print);
-			set(println);
 		} catch (SyntaxErrorException e) {
 			// Shouldn't occur
 		}
@@ -86,7 +83,6 @@ public class IdentificationTable {
 
 		try {
 			set(systemDecl);
-			set(out);
 		} catch (SyntaxErrorException e) {
 			// Shouldn't occur
 		}
@@ -138,6 +134,18 @@ public class IdentificationTable {
 	public void set(Declaration declaration) throws SyntaxErrorException {
 		String name = declaration.id.spelling;
 		Declaration decl = null;
+
+		if (!(declaration instanceof ClassDecl)) { // it is ok for System to be
+													// re-declared as a class
+			for (int i = PREDEFINED_SCOPE; i <= CLASS_SCOPE; i++) {
+				if (i < scopes.size()) {
+					decl = scopes.get(i).get(name);
+					if (decl != null)
+						throw new SyntaxErrorException(name
+								+ " was declared as a type and may not be used in declaration at " + declaration.posn);
+				}
+			}
+		}
 
 		// An identifier in parameter or local scope cannot be re-declared in
 		// deeper scopes

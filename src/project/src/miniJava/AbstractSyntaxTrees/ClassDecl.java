@@ -29,9 +29,6 @@ public class ClassDecl extends Declaration {
 	 * @return
 	 */
 	public FieldDecl getFieldDeclaration(String fieldName) {
-		// Convert to <class-name>.<member-name> form
-		fieldName = this.id.spelling + "." + fieldName;
-
 		for (FieldDecl fd : fieldDeclList) {
 			if (fd.id.spelling.equals(fieldName))
 				return fd;
@@ -46,9 +43,6 @@ public class ClassDecl extends Declaration {
 	 * @return
 	 */
 	public MethodDecl getMethodDeclaration(String methodName) {
-		// Convert to <class-name>.<member-name> form
-		methodName = this.id.spelling + "." + methodName;
-
 		for (MethodDecl md : methodDeclList) {
 			if (md.id.spelling.equals(methodName))
 				return md;

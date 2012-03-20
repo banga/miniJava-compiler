@@ -1,7 +1,5 @@
 package miniJava.ContextualAnalyzer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 
 import miniJava.AbstractSyntaxTrees.AST;
@@ -17,7 +15,6 @@ import miniJava.AbstractSyntaxTrees.ClassDecl;
 import miniJava.AbstractSyntaxTrees.ClassRef;
 import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.DeRef;
-import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.Identifier;
@@ -47,8 +44,6 @@ import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
 
 public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
-	private boolean foundMainMethod = false;
-
 	/**
 	 * Creates an identification table for the program
 	 * 
@@ -61,39 +56,46 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 		return table;
 	}
 
+	/**
+	 * When visiting a package, we just add the class declarations to the table,
+	 * check for the main method and exit. The member declarations are *NOT*
+	 * visited.
+	 */
 	@Override
 	public Void visitPackage(Package prog, IdentificationTable table) {
-		Iterator<ClassDecl> it = prog.classDeclList.iterator();
-		ArrayList<Declaration> memberDeclarations = new ArrayList<Declaration>();
+		boolean foundMainMethod = false;
 
-		while (it.hasNext()) {
-			ClassDecl cd = it.next();
+		for (ClassDecl cd : prog.classDeclList) {
 			Utilities.addDeclaration(table, cd);
 
-			IdentificationTable classTable = new IdentificationTable();
-			cd.visit(this, classTable);
+			// The only static method allowed is
+			// public static void main(String[])
+			for (MethodDecl md : cd.methodDeclList) {
+				if (md.isStatic) {
+					if (!foundMainMethod && !md.isPrivate && md.id.spelling.equals("main")
+							&& md.parameterDeclList.size() == 1) {
+						ParameterDecl param = md.parameterDeclList.get(0);
+						if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
+							foundMainMethod = true;
+						}
+					}
 
-			HashMap<String, Declaration> classMembers = classTable.getClassMembers();
-			if (classMembers != null) {
-				Iterator<String> itm = classMembers.keySet().iterator();
-				while (itm.hasNext()) {
-					Declaration memberDecl = classMembers.get(itm.next());
-					memberDecl.id.spelling = cd.id.spelling + "." + memberDecl.id.spelling;
-					memberDeclarations.add(memberDecl);
+					if (!foundMainMethod)
+						Utilities.reportError("There should be exactly one static method", md.posn);
 				}
 			}
 		}
 
-		table.openScope();
-		for (int i = 0; i < memberDeclarations.size(); i++)
-			Utilities.addDeclaration(table, memberDeclarations.get(i));
-
 		if (!foundMainMethod)
-			Utilities.reportError("Did not find a public static void main(String[]) method", prog.posn);
+			Utilities.reportError("Did not find a method with signature public static void main(String[])", prog.posn);
 
 		return null;
 	}
 
+	/**
+	 * This is called from the ASTReplaceReference visitor, which adds member
+	 * declarations to the identification table of the given class
+	 */
 	@Override
 	public Void visitClassDecl(ClassDecl cd, IdentificationTable table) {
 		table.openScope();
@@ -125,23 +127,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitMethodDecl(MethodDecl md, IdentificationTable table) {
-		if (md.isStatic) {
-			// The only static method allowed is
-			// public static void main(String[])
-			if (!foundMainMethod && !md.isPrivate && md.id.spelling.equals("main") && md.parameterDeclList.size() == 1) {
-				ParameterDecl param = md.parameterDeclList.get(0);
-				if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
-					foundMainMethod = true;
-					Utilities.addDeclaration(table, md);
-				}
-			}
-
-			if (!foundMainMethod)
-				Utilities.reportError("There should be exactly one static method: public static void main(String[])",
-						md.posn);
-		} else {
-			Utilities.addDeclaration(table, md);
-		}
+		Utilities.addDeclaration(table, md);
 
 		// Parameter scope
 		table.openScope();
@@ -230,7 +216,6 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitAssignStmt(AssignStmt stmt, IdentificationTable table) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
