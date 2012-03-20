@@ -15,8 +15,10 @@ public class Checkpoint1 {
 
 	static ExecutorService threadPool = Executors.newCachedThreadPool();
 
-	public static void main(String[] args) throws IOException, InterruptedException {
-		File testDir = new File(System.getProperty("java.class.path") + "/../tests/1");
+	public static void main(String[] args) throws IOException,
+			InterruptedException {
+		File testDir = new File(System.getProperty("java.class.path")
+				+ "/../tests/1");
 		System.out.println("Loading tests from " + testDir.getCanonicalPath());
 		int failures = 0;
 		for (File x : testDir.listFiles()) {
@@ -26,7 +28,8 @@ public class Checkpoint1 {
 					System.out.println(x.getName() + " passed successfully!");
 				else {
 					failures++;
-					System.err.println(x.getName() + " failed but should have passed!");
+					System.err.println(x.getName()
+							+ " failed but should have passed!");
 				}
 			} else {
 				if (returnCode == 4)
@@ -41,7 +44,8 @@ public class Checkpoint1 {
 	}
 
 	private static int runTest(File x) throws IOException, InterruptedException {
-		ProcessBuilder pb = new ProcessBuilder("java", "miniJava.Compiler", x.getPath()).directory(new File(System
+		ProcessBuilder pb = new ProcessBuilder("java", "miniJava.Compiler",
+				x.getPath()).directory(new File(System
 				.getProperty("java.class.path")));
 		Process p = pb.start();
 		threadPool.execute(new ProcessOutputter(p.getInputStream(), true));
