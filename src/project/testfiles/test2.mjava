@@ -1,22 +1,68 @@
-class Test {
+/*class Test2 {
 	private void do() {
-		x = 1+3*4/2+5+6+7;
+		int x = 1+3*4/2+5+6+7;
+		int y = 0;
+		int z = 0;
+		int d = 0;
 		x = -(y + z * 2 / 30);
 		y = !!!!z;
 		y = - ! - ! -z;
 		x = y + !true * !false / new int[x+y*new x()];
 		y = y- -z;
 		y = x >= y > z <= d < 1 == 2 != 4;
-		int x = new y[1 && 2 || 3];
-		x.y.z[2] = y[1*2 > 3] - -d.z[!!1+2-d.x()];
+		x = new y[1 && 2 || 3];
+		z[2] = y[1*2 > 3] - -z[!!1+2-d];
 		return x;
 	}
+}*/
+class String {
 }
-
 class Test {
-	public static int test(int x, String y) {
-		int z = 0;
-		z = x * 2;
-		return y;
+	Foo foo;
+	public void test(int c, int x) {
+		// Original System overshadowed
+		System system = new System();
+		//system.out.println(2);
+		//System.out.println(1);
+		//System.moo = new Moo();
+		int z = foo.bar.moo.sayMoo(foo.foo);
+		//Moo m = foo.bar.moo.getBar.moo;
+		//z(3);
+		foo.foo = x * 2;
+		z = 2;
+		// Should fail
+		//this = new Test();
 	}
+}
+class System1 {
+	Moo moo;
+	public static void main(String[] s) {
+		//moo = new Moo();
+		//String x = new String();
+	}
+	
+	void doSomething(String s) {
+		moo = new Moo();
+	}
+}
+class Moo {
+	private int x;
+	int sayMoo(int i) {
+		x = 0;
+		return i+1;
+	}
+	Bar getBar() {
+		Foo foo = new Foo();
+		if(true) {
+			int x = 1;
+		}
+		return new Bar();
+	}
+}
+class Bar {
+	Moo moo;
+}
+class Foo {
+	Bar bar;
+	int foo;
 }
