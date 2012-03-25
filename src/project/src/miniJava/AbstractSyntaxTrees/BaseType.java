@@ -17,7 +17,6 @@ public class BaseType extends Type {
 	public static final BaseType BOOLEAN_TYPE = new BaseType(TypeKind.BOOLEAN, "boolean", null);
 	public static final BaseType INT_TYPE = new BaseType(TypeKind.INT, "int", null);
 	public static final BaseType VOID_TYPE = new BaseType(TypeKind.VOID, "void", null);
-	public static final BaseType ERROR_TYPE = new BaseType(TypeKind.ERROR, "", null);
 	public static final BaseType UNSUPPORTED_TYPE = new BaseType(TypeKind.UNSUPPORTED, "", null);
 	public static final BaseType OK_TYPE = new BaseType(TypeKind.OK, "", null);
 	

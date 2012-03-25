@@ -74,8 +74,18 @@ public abstract class Utilities {
 	 */
 	public static boolean validateTypeEquivalence(Type type1, Type type2, SourcePosition pos) {
 		boolean b = getTypeEquivalence(type1, type2);
-		if (!b)
-			reportError("Type mismatch: Cannot convert from " + type2 + " to " + type1, pos);
+		if (!b) {
+			if(type1 instanceof UnsupportedType || type2 instanceof UnsupportedType) {
+				if(type1 instanceof UnsupportedType) {
+					reportError("Unsupported type " + type1.spelling, pos);
+				}
+				if(type2 instanceof UnsupportedType) {
+					reportError("Unsupported type " + type2.spelling, pos);
+				}
+			} else {
+				reportError("Type mismatch: Cannot convert from " + type2 + " to " + type1, pos);
+			}
+		}
 		return b;
 	}
 

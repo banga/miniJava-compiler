@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.AssignStmt;
+import miniJava.AbstractSyntaxTrees.BadRef;
 import miniJava.AbstractSyntaxTrees.BaseType;
 import miniJava.AbstractSyntaxTrees.BinaryExpr;
 import miniJava.AbstractSyntaxTrees.BlockStmt;
@@ -16,6 +17,7 @@ import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.DeRef;
 import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ErrorType;
+import miniJava.AbstractSyntaxTrees.ExprList;
 import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.Identifier;
@@ -34,6 +36,7 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.QualifiedRef;
 import miniJava.AbstractSyntaxTrees.RefExpr;
+import miniJava.AbstractSyntaxTrees.Reference;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.StatementType;
 import miniJava.AbstractSyntaxTrees.ThisRef;
@@ -170,33 +173,6 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	}
 
 	@Override
-	public Type visitCallStmt(CallStmt stmt, Type arg) {
-		Declaration decl = stmt.methodRef.getDeclaration();
-		if (!(decl instanceof MethodDecl)) {
-			Utilities.reportError("Method " + stmt.methodRef + " is undefined", stmt.posn);
-			return new ErrorType(stmt.methodRef.posn);
-		}
-
-		MethodDecl methodDecl = (MethodDecl) decl;
-
-		if (methodDecl.parameterDeclList.size() != stmt.argList.size()) {
-			Utilities.reportError("Method " + stmt.methodRef + " requires " + methodDecl.parameterDeclList.size()
-					+ " parameters", stmt.posn);
-			return new ErrorType(stmt.methodRef.posn);
-		}
-
-		Iterator<ParameterDecl> it = methodDecl.parameterDeclList.iterator();
-		for (Expression e : stmt.argList) {
-			Type expType = e.visit(this, null);
-			ParameterDecl paramDecl = it.next();
-			if (!Utilities.validateTypeEquivalence(paramDecl.type, expType, e.posn))
-				return new ErrorType(e.posn);
-		}
-
-		return decl.type;
-	}
-
-	@Override
 	public Type visitIfStmt(IfStmt stmt, Type arg) {
 		Type conditionType = stmt.cond.visit(this, null);
 		if (!Utilities.getTypeEquivalence(conditionType, BaseType.BOOLEAN_TYPE)) {
@@ -280,9 +256,8 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			break;
 
 		default:
-			// TODO: Remove this before submission!
-			throw new RuntimeException("A wild operator appeared! Abort! Abort!");
-
+			//throw new RuntimeException("A wild operator appeared! Abort! Abort!");
+			return null;
 		}
 
 		return resultType;
@@ -293,13 +268,12 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		return expr.ref.visit(this, null);
 	}
 
-	@Override
-	public Type visitCallExpr(CallExpr expr, Type arg) {
-		Declaration decl = expr.functionRef.getDeclaration();
+	private Type validateMethodReference(Reference methodRef, ExprList argList) {
+		Declaration decl = methodRef.getDeclaration();
 
 		if (!(decl instanceof MethodDecl)) {
-			Utilities.reportError("Method " + expr.functionRef + " is undefined", expr.functionRef.posn);
-			return new ErrorType(expr.functionRef.posn);
+			Utilities.reportError("Method " + methodRef + " is undefined", methodRef.posn);
+			return new ErrorType(methodRef.posn);
 		}
 
 		MethodDecl methodDecl = (MethodDecl) decl;
@@ -307,25 +281,35 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		if (methodDecl.isStatic) {
 			// Static methods cannot be invoked
 			Utilities.reportError("Static method " + methodDecl.id.spelling + " cannot be invoked",
-					expr.functionRef.posn);
-			return new ErrorType(expr.functionRef.posn);
+					methodRef.posn);
+			return new ErrorType(methodRef.posn);
 		}
 
-		if (methodDecl.parameterDeclList.size() != expr.argList.size()) {
-			Utilities.reportError("Method " + expr.functionRef + " requires " + methodDecl.parameterDeclList.size()
-					+ " parameters", expr.functionRef.posn);
-			return new ErrorType(expr.functionRef.posn);
+		if (methodDecl.parameterDeclList.size() != argList.size()) {
+			Utilities.reportError("Method " + methodRef + " requires " + methodDecl.parameterDeclList.size()
+					+ " parameters", methodRef.posn);
+			return new ErrorType(methodRef.posn);
 		}
 
 		Iterator<ParameterDecl> it = methodDecl.parameterDeclList.iterator();
-		for (Expression e : expr.argList) {
+		for (Expression e : argList) {
 			Type expType = e.visit(this, null);
 			ParameterDecl paramDecl = it.next();
 			if (!Utilities.validateTypeEquivalence(paramDecl.type, expType, e.posn))
 				return new ErrorType(e.posn);
 		}
 
-		return methodDecl.type;
+		return methodDecl.type;		
+	}
+
+	@Override
+	public Type visitCallStmt(CallStmt stmt, Type arg) {
+		return validateMethodReference(stmt.methodRef, stmt.argList);
+	}
+
+	@Override
+	public Type visitCallExpr(CallExpr expr, Type arg) {
+		return validateMethodReference(expr.functionRef, expr.argList);
 	}
 
 	@Override
@@ -353,8 +337,8 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	@Override
 	public Type visitQualifiedRef(QualifiedRef ref, Type arg) {
 		// This should not ever get visited
-		// TODO: remove before submitting
-		throw new RuntimeException("Here be Dragons!");
+		//throw new RuntimeException("Here be Dragons!");
+		return null;
 	}
 
 	@Override
@@ -421,5 +405,9 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	public Type visitMemberRef(MemberRef ref, Type arg) {
 		return ref.identifier.declaration.type;
 	}
-
+	
+	@Override
+	public Type visitBadRef(BadRef ref, Type arg) {
+		return new ErrorType(ref.posn);
+	}
 }

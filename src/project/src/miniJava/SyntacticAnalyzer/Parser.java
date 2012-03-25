@@ -240,13 +240,7 @@ public class Parser {
 
 			case IDENTIFIER:
 				Identifier typeId = new Identifier(currentToken.spelling, typePos);
-	
-				// String is unsupported
-				if(currentToken.spelling.equals("String")) {
-					type = UnsupportedType.STRING_TYPE;
-				} else {
-					type = new ClassType(typeId, typePos);
-				}
+				type = ClassType.fromSpelling(typeId);;
 				break;
 
 			default:
@@ -502,7 +496,7 @@ public class Parser {
 
 				if (currentToken.type == TokenType.RSQUARE) {
 					// id[] id = Expression; //VarDeclStmt
-					Type idType = new ClassType(id1, id1.posn);
+					Type idType = ClassType.fromSpelling(id1);
 					Type idArrType = new ArrayType(idType, idType.spelling, idType.posn);
 					consume();
 					Identifier id2 = new Identifier(currentToken.spelling, currentToken.position);
@@ -571,7 +565,7 @@ public class Parser {
 			case IDENTIFIER:
 				// id id = Expression; //VarDeclStmt
 				Identifier id2 = new Identifier(currentToken.spelling, currentToken.position);
-				Type id1Class = new ClassType(id1, id1.posn);
+				Type id1Class = ClassType.fromSpelling(id1);
 				consume();
 				expect(TokenType.EQUALTO);
 				Expression idIdExpr1 = parseExpression();
@@ -798,8 +792,7 @@ public class Parser {
 				break;
 
 			case IDENTIFIER:
-				newType = new ClassType(new Identifier(currentToken.spelling, currentToken.position),
-						currentToken.position);
+				newType = ClassType.fromSpelling(new Identifier(currentToken.spelling, currentToken.position));
 				consume();
 				switch (currentToken.type) {
 				case LPAREN:

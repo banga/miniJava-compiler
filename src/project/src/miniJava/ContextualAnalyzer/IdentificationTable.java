@@ -74,7 +74,7 @@ public class IdentificationTable {
 		 */
 		// public static _PrintStream out;
 		FieldDeclList systemFields = new FieldDeclList();
-		FieldDecl out = new FieldDecl(false, true, new ClassType(new Identifier(PRINTSTREAM, null), null),
+		FieldDecl out = new FieldDecl(false, true, ClassType.fromSpelling(new Identifier(PRINTSTREAM, null)),
 				new Identifier(SYSTEM_OUT, null), null);
 		systemFields.add(out);
 
@@ -88,6 +88,15 @@ public class IdentificationTable {
 		}
 
 		openScope();
+
+		/*
+		 * String class
+		 */
+		ClassDecl stringDecl = new ClassDecl(new Identifier("String", null), null, null, null);
+		try {
+			set(stringDecl);
+		} catch (SyntaxErrorException e) {
+		}
 	}
 
 	/**

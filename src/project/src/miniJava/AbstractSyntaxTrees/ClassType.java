@@ -8,11 +8,23 @@ package miniJava.AbstractSyntaxTrees;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ClassType extends Type {
-	public ClassType(Identifier id, SourcePosition posn) {
+	protected ClassType(Identifier id, SourcePosition posn) {
 		super(id.spelling, posn);
 		typeKind = TypeKind.CLASS;
 		name = id;
 
+	}
+
+	/**
+	 * Checks for unsupported types before creating a ClassType
+	 * 
+	 * @param spelling
+	 * @return
+	 */
+	public static Type fromSpelling(Identifier id) {
+		if(id.spelling.equals("String"))
+			return new UnsupportedType(id.spelling, id.posn);
+		return new ClassType(id, id.posn);
 	}
 
 	public <A, R> R visit(Visitor<A, R> v, A o) {

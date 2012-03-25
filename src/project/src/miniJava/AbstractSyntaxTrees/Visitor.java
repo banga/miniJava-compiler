@@ -81,6 +81,8 @@ public interface Visitor<ArgType, ResultType> {
 
 	public ResultType visitIndexedRef(IndexedRef ref, ArgType arg);
 
+	public ResultType visitBadRef(BadRef ref, ArgType arg);
+
 	// Terminals
 	public ResultType visitIdentifier(Identifier id, ArgType arg);
 

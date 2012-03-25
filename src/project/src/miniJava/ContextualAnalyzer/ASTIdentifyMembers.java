@@ -5,6 +5,7 @@ import java.util.Iterator;
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.AssignStmt;
+import miniJava.AbstractSyntaxTrees.BadRef;
 import miniJava.AbstractSyntaxTrees.BaseType;
 import miniJava.AbstractSyntaxTrees.BinaryExpr;
 import miniJava.AbstractSyntaxTrees.BlockStmt;
@@ -78,10 +79,9 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 						if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
 							foundMainMethod = true;
 						}
+					} else {
+						Utilities.reportError(md.id + " is not allowed to be a static method", md.posn);
 					}
-
-					if (!foundMainMethod)
-						Utilities.reportError("There should be exactly one static method", md.posn);
 				}
 			}
 		}
@@ -119,6 +119,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 			if (fd.type.typeKind == TypeKind.VOID) {
 				Utilities.reportError("void is an invalid type for the field " + fd.id.spelling, fd.posn);
 			} else {
+				Utilities.validateType(fd.type, table);
 				Utilities.addDeclaration(table, fd);
 			}
 		}
@@ -127,6 +128,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitMethodDecl(MethodDecl md, IdentificationTable table) {
+		Utilities.validateType(md.type, table);
 		Utilities.addDeclaration(table, md);
 
 		// Parameter scope
@@ -344,6 +346,11 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitMemberRef(MemberRef ref, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public Void visitBadRef(BadRef ref, IdentificationTable table) {
 		return null;
 	}
 }

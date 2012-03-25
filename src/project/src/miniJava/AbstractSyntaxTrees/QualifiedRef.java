@@ -31,7 +31,7 @@ public class QualifiedRef extends Reference {
 	
 	@Override
 	public Declaration getDeclaration() {
-		// TODO: remove before submission
-		throw new RuntimeException("I do declare, QualifiedRef's getDeclaration should never be called!");
+		// throw new RuntimeException("QualifiedRef's getDeclaration should never be called!");
+		return null;
 	}
 }

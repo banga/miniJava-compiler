@@ -2,11 +2,11 @@ package miniJava.AbstractSyntaxTrees;
 
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
-public class UnsupportedType extends Type {
+public class UnsupportedType extends ClassType {
 	public static final UnsupportedType STRING_TYPE = new UnsupportedType("String", null);
 
 	public UnsupportedType(String spelling, SourcePosition posn) {
-		super(spelling, posn);
+		super(new Identifier(spelling, posn), posn);
 	}
 
 	@Override

@@ -11,6 +11,7 @@ abstract public class Type extends AST {
 
 	/**
 	 * Changed Type to store spelling of type for type-checking.
+	 * 
 	 * @param spelling
 	 * @param posn
 	 */
@@ -18,7 +19,7 @@ abstract public class Type extends AST {
 		super(posn);
 		this.spelling = spelling;
 	}
-	
+
 	public TypeKind typeKind;
 	public String spelling;
 }

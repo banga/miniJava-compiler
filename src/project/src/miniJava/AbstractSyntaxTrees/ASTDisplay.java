@@ -333,6 +333,12 @@ public class ASTDisplay implements Visitor<String, Object> {
 		return null;
 	}
 
+	@Override
+	public Object visitBadRef(BadRef ref, String arg) {
+		show(arg, "BadRef");
+		return null;
+	}
+
 	// Terminals
 	public Object visitIdentifier(Identifier id, String arg) {
 		show(arg, "\"" + id.spelling + "\" " + id.toString());
