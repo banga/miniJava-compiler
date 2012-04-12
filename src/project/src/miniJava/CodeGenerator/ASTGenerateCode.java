@@ -1,0 +1,576 @@
+package miniJava.CodeGenerator;
+
+import java.util.HashMap;
+
+import mJAM.Machine;
+import mJAM.Machine.Op;
+import mJAM.Machine.Prim;
+import mJAM.Machine.Reg;
+import miniJava.AbstractSyntaxTrees.ArrayType;
+import miniJava.AbstractSyntaxTrees.AssignStmt;
+import miniJava.AbstractSyntaxTrees.BadRef;
+import miniJava.AbstractSyntaxTrees.BaseType;
+import miniJava.AbstractSyntaxTrees.BinaryExpr;
+import miniJava.AbstractSyntaxTrees.BlockStmt;
+import miniJava.AbstractSyntaxTrees.BooleanLiteral;
+import miniJava.AbstractSyntaxTrees.CallExpr;
+import miniJava.AbstractSyntaxTrees.CallStmt;
+import miniJava.AbstractSyntaxTrees.ClassDecl;
+import miniJava.AbstractSyntaxTrees.ClassRef;
+import miniJava.AbstractSyntaxTrees.ClassType;
+import miniJava.AbstractSyntaxTrees.DeRef;
+import miniJava.AbstractSyntaxTrees.Declaration;
+import miniJava.AbstractSyntaxTrees.ErrorType;
+import miniJava.AbstractSyntaxTrees.Expression;
+import miniJava.AbstractSyntaxTrees.FieldDecl;
+import miniJava.AbstractSyntaxTrees.Identifier;
+import miniJava.AbstractSyntaxTrees.IfStmt;
+import miniJava.AbstractSyntaxTrees.IndexedRef;
+import miniJava.AbstractSyntaxTrees.IntLiteral;
+import miniJava.AbstractSyntaxTrees.LiteralExpr;
+import miniJava.AbstractSyntaxTrees.LocalRef;
+import miniJava.AbstractSyntaxTrees.MemberRef;
+import miniJava.AbstractSyntaxTrees.MethodDecl;
+import miniJava.AbstractSyntaxTrees.NewArrayExpr;
+import miniJava.AbstractSyntaxTrees.NewObjectExpr;
+import miniJava.AbstractSyntaxTrees.Operator;
+import miniJava.AbstractSyntaxTrees.Package;
+import miniJava.AbstractSyntaxTrees.ParameterDecl;
+import miniJava.AbstractSyntaxTrees.QualifiedRef;
+import miniJava.AbstractSyntaxTrees.RefExpr;
+import miniJava.AbstractSyntaxTrees.Statement;
+import miniJava.AbstractSyntaxTrees.StatementList;
+import miniJava.AbstractSyntaxTrees.StatementType;
+import miniJava.AbstractSyntaxTrees.ThisRef;
+import miniJava.AbstractSyntaxTrees.UnaryExpr;
+import miniJava.AbstractSyntaxTrees.UnsupportedType;
+import miniJava.AbstractSyntaxTrees.VarDecl;
+import miniJava.AbstractSyntaxTrees.VarDeclStmt;
+import miniJava.AbstractSyntaxTrees.Visitor;
+import miniJava.AbstractSyntaxTrees.WhileStmt;
+import miniJava.ContextualAnalyzer.IdentificationTable;
+
+public class ASTGenerateCode implements Visitor<Object, Void> {
+
+	enum FetchType {
+		ADDRESS, VALUE, METHOD
+	};
+
+	// Displacement of local variables from LB
+	int localDisplacement;
+	HashMap<Integer, MethodRuntimeEntity> methodDisplacements = new HashMap<Integer, MethodRuntimeEntity>();
+
+	@Override
+	public Void visitPackage(Package prog, Object arg) {
+		Machine.initCodeGen();
+
+		Machine.emit(Op.LOADL, -1);
+		int mainCallAddress = Machine.nextInstrAddr();
+		Machine.emit(Op.CALL, Reg.CB, 0);
+		Machine.emit(Op.HALT, 0, 0, 0);
+
+		for (ClassDecl cd : prog.classDeclList)
+			cd.visit(this, null);
+
+		// Patch method calls
+		for (Integer addr : methodDisplacements.keySet())
+			Machine.patch(addr, methodDisplacements.get(addr).displacement);
+
+		// Patch main method call
+		MethodDecl mainMethod = (MethodDecl) arg;
+		Machine.patch(mainCallAddress, mainMethod.runtimeEntity.displacement);
+
+		return null;
+	}
+
+	@Override
+	public Void visitClassDecl(ClassDecl cd, Object arg) {
+		cd.runtimeEntity = new ClassRuntimeEntity(cd.fieldDeclList.size());
+
+		int d = 0;
+		for (FieldDecl fd : cd.fieldDeclList) {
+			fd.visit(this, null);
+			fd.runtimeEntity.displacement = d++;
+		}
+
+		for (MethodDecl md : cd.methodDeclList) {
+			md.visit(this, null);
+		}
+
+		return null;
+	}
+
+	@Override
+	public Void visitFieldDecl(FieldDecl fd, Object arg) {
+		return null;
+	}
+
+	private int allocateSpaceForLocals(StatementList sl) {
+		int numAllocated = 0;
+
+		for (Statement s : sl) {
+			if (s instanceof VarDeclStmt) {
+				VarDecl v = ((VarDeclStmt) s).varDecl;
+				v.runtimeEntity.displacement = localDisplacement + numAllocated;
+				numAllocated++;
+			}
+		}
+
+		Machine.emit(Op.PUSH, numAllocated);
+		localDisplacement += numAllocated;
+
+		return numAllocated;
+	}
+
+	@Override
+	public Void visitMethodDecl(MethodDecl md, Object arg) {
+		localDisplacement = 3;
+		md.runtimeEntity.displacement = Machine.nextInstrAddr();
+
+		int d = -md.parameterDeclList.size();
+		for (ParameterDecl pd : md.parameterDeclList) {
+			pd.visit(this, null);
+			pd.runtimeEntity.displacement = d++;
+		}
+
+		int numAllocated = allocateSpaceForLocals(md.statementList);
+		for (Statement s : md.statementList) {
+			s.visit(this, null);
+		}
+		if (md.returnExp != null) {
+			md.returnExp.visit(this, null);
+		}
+		localDisplacement -= numAllocated; // We don't POP because RETURN does
+											// that automatically
+
+		//Machine.emit(Op.HALT, 4, 0, 0);
+
+		if (md.returnExp != null) {
+			Machine.emit(Op.RETURN, 1, 0, md.parameterDeclList.size());
+		} else {
+			Machine.emit(Op.RETURN, 0, 0, md.parameterDeclList.size());
+		}
+
+		return null;
+	}
+
+	@Override
+	public Void visitBlockStmt(BlockStmt stmt, Object arg) {
+		int numAllocated = allocateSpaceForLocals(stmt.sl);
+		for (Statement s : stmt.sl)
+			s.visit(this, null);
+		localDisplacement -= numAllocated;
+		Machine.emit(Op.POP, numAllocated);
+
+		return null;
+	}
+
+	@Override
+	public Void visitParameterDecl(ParameterDecl pd, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitVarDecl(VarDecl decl, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitVardeclStmt(VarDeclStmt stmt, Object arg) {
+		// The space for this variable has already been allocated by
+		// allocateLocalVariables
+		// Store the value of the initializing expression in variable
+		stmt.initExp.visit(this, FetchType.VALUE);
+		Machine.emit(Op.STORE, Reg.LB, stmt.varDecl.runtimeEntity.displacement);
+
+		return null;
+	}
+
+	@Override
+	public Void visitAssignStmt(AssignStmt stmt, Object arg) {
+		stmt.val.visit(this, null); // An expression always returns a value
+		stmt.ref.visit(this, FetchType.ADDRESS);
+
+		// The lhs of an assignment statement can be:
+		// 1. A local variable
+		// 2. An element of an array, like a[2]. Note that a.b[2] is not allowed
+		// 3. A field of an object or of this
+		if (stmt.ref instanceof LocalRef) {
+			// local variable, stored on the stack
+			Machine.emit(Op.STOREI);
+		} else if (stmt.ref instanceof IndexedRef) {
+			// array element
+			Machine.emit(Prim.arrayupd);
+		} else {
+			// field
+			Machine.emit(Prim.fieldupd);
+		}
+
+		return null;
+	}
+
+	/* TODO */
+	@Override
+	public Void visitCallStmt(CallStmt stmt, Object arg) {
+		// Get the arguments on the stack
+		for (Expression exp : stmt.argList)
+			exp.visit(this, null);
+
+		// Handle System.out.println(int x)
+		if (stmt.methodRef.getDeclaration() == IdentificationTable.PRINTLN_DECL) {
+			Machine.emit(Prim.putint);
+			Machine.emit(Prim.puteol);
+			return null;
+		}
+
+		if (stmt.methodRef instanceof MemberRef) {
+			// We are calling a method of the current class, so we need to place
+			// the current OB on stack. Otherwise, DeRef places the right
+			// instance on stack
+			Machine.emit(Op.LOADA, Reg.OB, 0);
+		}
+		// The methodRef generates a CALL statement
+		stmt.methodRef.visit(this, FetchType.METHOD);
+
+		return null;
+	}
+
+	@Override
+	public Void visitIfStmt(IfStmt stmt, Object arg) {
+		/*
+		 * <evaluate condition> JUMPIF 0 ELSE <then block> JUMP END ELSE: <else
+		 * block> END:
+		 */
+
+		// visit to this expression leaves a boolean (0 or 1)
+		stmt.cond.visit(this, null);
+
+		int elseJumpAddr = Machine.nextInstrAddr();
+		Machine.emit(Op.JUMPIF, 0, Reg.CB, 0);
+		stmt.thenStmt.visit(this, null);
+
+		if (stmt.elseStmt != null) {
+			int endJumpAddr = Machine.nextInstrAddr();
+			Machine.emit(Op.JUMP, Reg.CB, 0);
+			Machine.patch(elseJumpAddr, Machine.nextInstrAddr());
+			stmt.elseStmt.visit(this, null);
+			Machine.patch(endJumpAddr, Machine.nextInstrAddr());
+		} else {
+			Machine.patch(elseJumpAddr, Machine.nextInstrAddr());
+		}
+
+		return null;
+	}
+
+	@Override
+	public Void visitWhileStmt(WhileStmt stmt, Object arg) {
+		/*
+		 * JUMP TEST LOOP: <loop body> TEST: <evaluate condition> JUMPIF 1 LOOP
+		 */
+
+		// JUMP TEST
+		int testJumpAddr = Machine.nextInstrAddr();
+		Machine.emit(Op.JUMP, 0, Reg.CB, 0);
+		// LOOP:
+		int loopStartAddr = Machine.nextInstrAddr();
+		stmt.body.visit(this, null);
+		// TEST:
+		int testStart = Machine.nextInstrAddr();
+		stmt.cond.visit(this, null);
+		Machine.emit(Op.JUMPIF, 1, Reg.CB, loopStartAddr);
+		Machine.patch(testJumpAddr, testStart);
+
+		return null;
+	}
+
+	@Override
+	public Void visitUnaryExpr(UnaryExpr expr, Object arg) {
+		expr.expr.visit(this, null);
+
+		switch (expr.operator.operatorType) {
+		case BANG:
+			Machine.emit(Prim.not);
+			break;
+		case MINUS:
+			Machine.emit(Prim.neg);
+			break;
+		}
+
+		return null;
+	}
+
+	@Override
+	public Void visitBinaryExpr(BinaryExpr expr, Object arg) {
+		expr.left.visit(this, null);
+		expr.right.visit(this, null);
+
+		switch (expr.operator.operatorType) {
+		case LANGLE:
+			Machine.emit(Prim.lt);
+			break;
+		case RANGLE:
+			Machine.emit(Prim.gt);
+			break;
+		case EQUALTO_EQUALTO:
+			Machine.emit(Prim.eq);
+			break;
+		case LANGLE_EQUALTO:
+			Machine.emit(Prim.le);
+			break;
+		case RANGLE_EQUALTO:
+			Machine.emit(Prim.ge);
+			break;
+		case BANG_EQUALTO:
+			Machine.emit(Prim.ne);
+			break;
+		case PLUS:
+			Machine.emit(Prim.add);
+			break;
+		case MINUS:
+			Machine.emit(Prim.sub);
+			break;
+		case ASTERISK:
+			Machine.emit(Prim.mult);
+			break;
+		case SLASH:
+			Machine.emit(Prim.div);
+			break;
+		case PIPE_PIPE:
+			Machine.emit(Prim.or);
+			break;
+		case AMPERSAND_AMPERSAND:
+			Machine.emit(Prim.and);
+			break;
+		}
+
+		return null;
+	}
+
+	@Override
+	public Void visitRefExpr(RefExpr expr, Object arg) {
+		expr.ref.visit(this, FetchType.VALUE);
+		return null;
+	}
+
+	@Override
+	public Void visitCallExpr(CallExpr expr, Object arg) {
+		// Get the arguments on the stack
+		for (Expression exp : expr.argList)
+			exp.visit(this, null);
+
+		if (expr.functionRef instanceof MemberRef) {
+			// This is a call to a method of the current class, so we need to
+			// place the value of OB before CALL instruction is generated by the
+			// MemberRef
+			Machine.emit(Op.LOADA, Reg.OB, 0);
+		}
+		expr.functionRef.visit(this, FetchType.METHOD);
+		return null;
+	}
+
+	@Override
+	public Void visitLiteralExpr(LiteralExpr expr, Object arg) {
+		expr.literal.visit(this, null);
+		return null;
+	}
+
+	@Override
+	public Void visitIntLiteral(IntLiteral num, Object arg) {
+		Machine.emit(Op.LOADL, Integer.parseInt(num.spelling));
+		return null;
+	}
+
+	@Override
+	public Void visitBooleanLiteral(BooleanLiteral bool, Object arg) {
+		Machine.emit(Op.LOADL, bool.spelling.equals("true") ? 1 : 0);
+		return null;
+	}
+
+	@Override
+	public Void visitNewObjectExpr(NewObjectExpr expr, Object arg) {
+		Machine.emit(Op.LOADL, -1);
+		Machine.emit(Op.LOADL, expr.classtype.declaration.runtimeEntity.size);
+		Machine.emit(Prim.newobj);
+		return null;
+	}
+
+	@Override
+	public Void visitNewArrayExpr(NewArrayExpr expr, Object arg) {
+		expr.sizeExpr.visit(this, null);
+		Machine.emit(Prim.newarr);
+		return null;
+	}
+
+	@Override
+	public Void visitLocalRef(LocalRef ref, Object arg) {
+		int displacement;
+
+		Declaration decl = ref.identifier.declaration;
+		if (decl instanceof VarDecl) {
+			displacement = ((VarDecl) ref.identifier.declaration).runtimeEntity.displacement;
+		} else if (decl instanceof ParameterDecl) {
+			displacement = ((ParameterDecl) ref.identifier.declaration).runtimeEntity.displacement;
+		} else {
+			throw new RuntimeException("LocalRef is not a variable or parameter!");
+		}
+
+		switch ((FetchType) arg) {
+
+		case ADDRESS:
+			Machine.emit(Op.LOADA, Reg.LB, displacement);
+			break;
+
+		case VALUE:
+			Machine.emit(Op.LOAD, Reg.LB, displacement);
+			break;
+		}
+
+		return null;
+	}
+
+	@Override
+	public Void visitThisRef(ThisRef ref, Object arg) {
+		// 'this' should always be used to get the address of current instance
+		Machine.emit(Op.LOADA, Reg.OB, 0);
+		return null;
+	}
+
+	@Override
+	public Void visitClassRef(ClassRef ref, Object arg) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Void visitMemberRef(MemberRef ref, Object arg) {
+		Declaration decl = ref.identifier.declaration;
+
+		if (decl instanceof FieldDecl) {
+			// Note that a MemberRef for fields is only visited directly if it
+			// is the first reference in the qualified reference list. For e.g.
+			// if a is a field of the current class, a.b.c will cause a visit to
+			// the MemberRef for "a". Everything else will be handled by a
+			// DeRef.
+			//
+			// So, we can assume that we are generating code for accessing a
+			// member of the current instance
+			int displacement = ((FieldDecl) decl).runtimeEntity.displacement;
+
+			switch ((FetchType) arg) {
+			case ADDRESS:
+				Machine.emit(Op.LOADA, Reg.OB, displacement);
+				break;
+
+			case VALUE:
+				Machine.emit(Op.LOAD, Reg.OB, displacement);
+				break;
+			}
+		} else if (decl instanceof MethodDecl) {
+			if ((FetchType) arg != FetchType.METHOD)
+				throw new RuntimeException("MethodRef called for MethodDecl with unknown arg: " + arg);
+
+			// The MemberRef for methods will be called by a CallExpr. If it is
+			// a call to a method in the current class, we will place the value
+			// of OB on the stack. Otherwise, DeRef will be used to place the
+			// right value of the instance address on the stack. So we assume
+			// that the right value is already on the stack.
+			int callInstrAddr = Machine.nextInstrAddr();
+			Machine.emit(Op.CALL, Reg.CB, 0);
+			methodDisplacements.put(callInstrAddr, ((MethodDecl) decl).runtimeEntity);
+		}
+
+		return null;
+	}
+
+	@Override
+	public Void visitDeRef(DeRef ref, Object arg) {
+		ref.classReference.visit(this, FetchType.VALUE);
+
+		switch ((FetchType) arg) {
+		case VALUE:
+			Machine.emit(Op.LOADL, ((FieldDecl) ref.memberReference.identifier.declaration).runtimeEntity.displacement);
+			Machine.emit(Prim.fieldref);
+			break;
+
+		case METHOD:
+			ref.memberReference.visit(this, FetchType.METHOD);
+			break;
+		}
+
+		return null;
+	}
+
+	@Override
+	public Void visitIndexedRef(IndexedRef ref, Object arg) {
+		switch ((FetchType) arg) {
+		case ADDRESS:
+			// The arrayupd primitive is called by the visitAssignStmt, we just
+			// place the arguments on the stack
+			ref.ref.visit(this, FetchType.VALUE);
+			ref.indexExpr.visit(this, null);
+			break;
+
+		case VALUE:
+			ref.ref.visit(this, FetchType.VALUE);
+			ref.indexExpr.visit(this, null);
+			Machine.emit(Prim.arrayref);
+		}
+
+		return null;
+	}
+
+	/*******************************************
+	 * Here lie the unvisited. Do not disturb! *
+	 ******************************************/
+
+	@Override
+	public Void visitQualifiedRef(QualifiedRef ref, Object arg) {
+		throw new RuntimeException("QualifiedRef should not be visited in code generator!");
+		// return null;
+	}
+
+	@Override
+	public Void visitBaseType(BaseType type, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitClassType(ClassType type, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitArrayType(ArrayType type, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitStatementType(StatementType type, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitErrorType(ErrorType type, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitUnsupportedType(UnsupportedType type, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitBadRef(BadRef ref, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitIdentifier(Identifier id, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitOperator(Operator op, Object arg) {
+		return null;
+	}
+}
