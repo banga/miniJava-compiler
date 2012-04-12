@@ -34,6 +34,12 @@ public class IdentificationTable {
 	public static final String SYSTEM = "System";
 	public static final String SYSTEM_OUT = "out";
 
+	// Needs to be public for testing main method
+	public static final ClassDecl STRING_DECL = new ClassDecl(new Identifier("String", null), new FieldDeclList(),
+			new MethodDeclList(), null);
+
+	public static MethodDecl PRINTLN_DECL;
+	
 	// A stack of tables for each scope
 	List<HashMap<String, Declaration>> scopes = new ArrayList<HashMap<String, Declaration>>();
 
@@ -56,8 +62,8 @@ public class IdentificationTable {
 		// public void println(int n);
 		MemberDecl println = new FieldDecl(false, false, BaseType.VOID_TYPE, new Identifier(PRINTSTREAM_PRINTLN, null),
 				null);
-		println = new MethodDecl(println, params, null, null, null);
-		printStreamMethods.add((MethodDecl) println);
+		PRINTLN_DECL = new MethodDecl(println, params, null, null, null);
+		printStreamMethods.add(PRINTLN_DECL);
 
 		// class _PrintStream
 		ClassDecl printStreamDecl = new ClassDecl(new Identifier(PRINTSTREAM, null), new FieldDeclList(),
@@ -74,8 +80,8 @@ public class IdentificationTable {
 		 */
 		// public static _PrintStream out;
 		FieldDeclList systemFields = new FieldDeclList();
-		FieldDecl out = new FieldDecl(false, true, ClassType.fromSpelling(new Identifier(PRINTSTREAM, null)),
-				new Identifier(SYSTEM_OUT, null), null);
+		FieldDecl out = new FieldDecl(false, true, new ClassType(PRINTSTREAM, null), new Identifier(SYSTEM_OUT, null),
+				null);
 		systemFields.add(out);
 
 		// class System;
@@ -83,20 +89,12 @@ public class IdentificationTable {
 
 		try {
 			set(systemDecl);
+			set(STRING_DECL);
 		} catch (SyntaxErrorException e) {
 			// Shouldn't occur
 		}
 
 		openScope();
-
-		/*
-		 * String class
-		 */
-		ClassDecl stringDecl = new ClassDecl(new Identifier("String", null), null, null, null);
-		try {
-			set(stringDecl);
-		} catch (SyntaxErrorException e) {
-		}
 	}
 
 	/**
@@ -142,36 +140,22 @@ public class IdentificationTable {
 	 */
 	public void set(Declaration declaration) throws SyntaxErrorException {
 		String name = declaration.id.spelling;
-		Declaration decl = null;
-
-		if (!(declaration instanceof ClassDecl)) { // it is ok for System to be
-													// re-declared as a class
-			for (int i = PREDEFINED_SCOPE; i <= CLASS_SCOPE; i++) {
-				if (i < scopes.size()) {
-					decl = scopes.get(i).get(name);
-					if (decl != null)
-						throw new SyntaxErrorException(name
-								+ " was declared as a type and may not be used in declaration at " + declaration.posn);
-				}
-			}
-		}
-
 		// An identifier in parameter or local scope cannot be re-declared in
 		// deeper scopes
 		for (int i = PARAMETER_SCOPE; i < scopes.size(); i++) {
-			decl = scopes.get(i).get(name);
+			Declaration decl = scopes.get(i).get(name);
 			if (decl != null)
 				throw new SyntaxErrorException(name + " was already declared at " + decl.posn);
 		}
 
 		// Re-declaration in current scope not allowed
 		HashMap<String, Declaration> scope = scopes.get(scopes.size() - 1);
-		decl = scope.get(name);
+		Declaration decl = scope.get(name);
 		if (decl != null)
 			throw new SyntaxErrorException(name + " was already declared at " + decl.posn);
 
 		// Add to current scope
-		scope.put(declaration.id.spelling, declaration);
+		scope.put(name, declaration);
 	}
 
 	/**

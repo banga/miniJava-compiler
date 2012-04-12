@@ -5,6 +5,7 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.CodeGenerator.LocalRuntimeEntity;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ParameterDecl extends LocalDecl {
@@ -16,4 +17,6 @@ public class ParameterDecl extends LocalDecl {
 	public <A, R> R visit(Visitor<A, R> v, A o) {
 		return v.visitParameterDecl(this, o);
 	}
+
+	public LocalRuntimeEntity runtimeEntity = new LocalRuntimeEntity(0);
 }

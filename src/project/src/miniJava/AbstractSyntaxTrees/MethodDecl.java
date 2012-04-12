@@ -5,6 +5,7 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.CodeGenerator.MethodRuntimeEntity;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class MethodDecl extends MemberDecl {
@@ -23,4 +24,5 @@ public class MethodDecl extends MemberDecl {
 	public ParameterDeclList parameterDeclList;
 	public StatementList statementList;
 	public Expression returnExp;
+	public MethodRuntimeEntity runtimeEntity = new MethodRuntimeEntity(-1);
 }

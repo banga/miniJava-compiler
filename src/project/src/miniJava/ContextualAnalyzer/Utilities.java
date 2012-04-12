@@ -2,6 +2,7 @@ package miniJava.ContextualAnalyzer;
 
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.BaseType;
+import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.Type;
@@ -59,7 +60,7 @@ public abstract class Utilities {
 	 * @return
 	 */
 	public static boolean getTypeEquivalence(Type type1, Type type2) {
-		if(type1 instanceof UnsupportedType || type2 instanceof UnsupportedType)
+		if (type1 instanceof UnsupportedType || type2 instanceof UnsupportedType)
 			return false;
 		if (type1 instanceof ErrorType || type2 instanceof ErrorType)
 			return true;
@@ -75,11 +76,11 @@ public abstract class Utilities {
 	public static boolean validateTypeEquivalence(Type type1, Type type2, SourcePosition pos) {
 		boolean b = getTypeEquivalence(type1, type2);
 		if (!b) {
-			if(type1 instanceof UnsupportedType || type2 instanceof UnsupportedType) {
-				if(type1 instanceof UnsupportedType) {
+			if (type1 instanceof UnsupportedType || type2 instanceof UnsupportedType) {
+				if (type1 instanceof UnsupportedType) {
 					reportError("Unsupported type " + type1.spelling, pos);
 				}
-				if(type2 instanceof UnsupportedType) {
+				if (type2 instanceof UnsupportedType) {
 					reportError("Unsupported type " + type2.spelling, pos);
 				}
 			} else {
@@ -89,13 +90,20 @@ public abstract class Utilities {
 		return b;
 	}
 
+	public static Type handleUnsupportedType(Type type, IdentificationTable table) {
+		if (type instanceof ClassType && ((ClassType) type).spelling.equals("String")
+				&& table.getScope("String") == IdentificationTable.PREDEFINED_SCOPE)
+			return new UnsupportedType(IdentificationTable.STRING_DECL, type.posn);
+		return type;
+	}
+
 	public static void reportError(String msg, SourcePosition pos) {
 		errorCount++;
 		System.err.println("*** " + msg + " at " + pos);
 	}
 
 	public static void exitOnError() {
-		if(errorCount > 0) {
+		if (errorCount > 0) {
 			System.err.println(errorCount + (errorCount > 1 ? " errors" : " error"));
 			System.exit(4);
 		}

@@ -5,6 +5,7 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.CodeGenerator.FieldRuntimeEntity;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class FieldDecl extends MemberDecl {
@@ -20,4 +21,6 @@ public class FieldDecl extends MemberDecl {
 	public <A, R> R visit(Visitor<A, R> v, A o) {
 		return v.visitFieldDecl(this, o);
 	}
+
+	public FieldRuntimeEntity runtimeEntity = new FieldRuntimeEntity(0);
 }

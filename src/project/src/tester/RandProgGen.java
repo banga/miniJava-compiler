@@ -279,6 +279,8 @@ public class RandProgGen {
 
 		g.addIdentifierSymbol("id");
 		g.addNumberSymbol("num");
+		g.addRule("unop", "- | !");
+		g.addRule("binop", "+ | - | / | && | > | < | >= | <= | == | !="); // Can't include * or || at the moment
 
 		g.addRule("Program", "ClassDeclaration*");
 		g.addRule("ClassDeclaration", "class id {\n MemberDeclaration* }\n");
@@ -309,7 +311,13 @@ public class RandProgGen {
 		g.addRule("Statement", "if ( Expression ) \n Statement | if ( Expression ) \n Statement else \n Statement");
 		g.addRule("Statement", "while ( Expression ) \n Statement");
 
-		g.addRule("Expression", "id");
+		g.addRule("Expression", "Reference | Reference [ Expression ]");
+		g.addRule("Expression", "Reference ( ) | Reference ( ArgumentList )");
+		g.addRule("Expression", "unop Expression");
+		g.addRule("Expression", "Expression binop Expression");
+		g.addRule("Expression", "( Expression )");
+		g.addRule("Expression", "num | true | false");
+		g.addRule("Expression", "new id ( ) | new int [ Expression ] | new id [ Expression ]");
 
 		writeTestfiles(g, 100);
 	}

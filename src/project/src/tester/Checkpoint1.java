@@ -18,7 +18,7 @@ public class Checkpoint1 {
 	public static void main(String[] args) throws IOException,
 			InterruptedException {
 		File testDir = new File(System.getProperty("java.class.path")
-				+ "/../tests/1");
+				+ "/../testPA3/1");
 		System.out.println("Loading tests from " + testDir.getCanonicalPath());
 		int failures = 0;
 		for (File x : testDir.listFiles()) {

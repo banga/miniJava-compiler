@@ -5,22 +5,21 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.CodeGenerator.ClassRuntimeEntity;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ClassDecl extends Declaration {
 
 	public ClassDecl(Identifier id, FieldDeclList fdl, MethodDeclList mdl, SourcePosition posn) {
-		super(id, ClassType.fromSpelling(id), posn);
+		super(id, new ClassType(id.spelling, id.posn), posn);
 		fieldDeclList = fdl;
 		methodDeclList = mdl;
+		((ClassType) type).declaration = this;
 	}
 
 	public <A, R> R visit(Visitor<A, R> v, A o) {
 		return v.visitClassDecl(this, o);
 	}
-
-	public FieldDeclList fieldDeclList;
-	public MethodDeclList methodDeclList;
 
 	/**
 	 * Return the field with given name if it exists
@@ -49,11 +48,15 @@ public class ClassDecl extends Declaration {
 		}
 		return null;
 	}
-	
+
 	public MemberDecl getMemberDeclaration(String memberName) {
 		MemberDecl md = getFieldDeclaration(memberName);
-		if(md == null)
+		if (md == null)
 			md = getMethodDeclaration(memberName);
 		return md;
 	}
+
+	public FieldDeclList fieldDeclList;
+	public MethodDeclList methodDeclList;
+	public ClassRuntimeEntity runtimeEntity = new ClassRuntimeEntity(0);
 }

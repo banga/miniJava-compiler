@@ -1,12 +1,14 @@
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.ContextualAnalyzer.IdentificationTable;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class UnsupportedType extends ClassType {
-	public static final UnsupportedType STRING_TYPE = new UnsupportedType("String", null);
+	public static final UnsupportedType STRING_TYPE = new UnsupportedType(IdentificationTable.STRING_DECL, null);
 
-	public UnsupportedType(String spelling, SourcePosition posn) {
-		super(new Identifier(spelling, posn), posn);
+	public UnsupportedType(ClassDecl declaration, SourcePosition position) {
+		super(declaration.id.spelling, position);
+		super.declaration = declaration;
 	}
 
 	@Override

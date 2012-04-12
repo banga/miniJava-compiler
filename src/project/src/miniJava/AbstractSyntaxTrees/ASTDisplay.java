@@ -72,23 +72,24 @@ public class ASTDisplay implements Visitor<String, Object> {
 	}
 
 	public Object visitMethodDecl(MethodDecl m, String arg) {
-		show(arg, "(" + (m.isPrivate ? "private" : "public")
-				+ (m.isStatic ? " static) " : ") ") + m.toString());
-		m.type.visit(this, indent(arg));
-		m.id.visit(this, indent(arg));
+		show(arg, "MethodDecl \"" + m + "\"");
+
 		ParameterDeclList pdl = m.parameterDeclList;
 		show(arg, "  ParameterDeclList [" + pdl.size() + "]");
 		String pfx = ((String) arg) + "  . ";
 		for (ParameterDecl pd : pdl) {
 			pd.visit(this, pfx);
 		}
+
 		StatementList sl = m.statementList;
 		show(arg, "  StmtList [" + sl.size() + "]");
 		for (Statement s : sl) {
 			s.visit(this, pfx);
 		}
+
 		if (m.returnExp != null) {
-			m.returnExp.visit(this, indent(arg));
+			show(indent(arg), "ReturnExp");
+			m.returnExp.visit(this, indent(indent(arg)));
 		}
 		return null;
 	}
@@ -115,7 +116,6 @@ public class ASTDisplay implements Visitor<String, Object> {
 
 	public Object visitClassType(ClassType type, String arg) {
 		show(arg, type);
-		type.name.visit(this, indent(arg));
 		return null;
 	}
 
@@ -271,7 +271,7 @@ public class ASTDisplay implements Visitor<String, Object> {
 	 * @return
 	 */
 	public Object visitDeRef(DeRef dr, String arg) {
-		show(arg, dr);
+		show(arg, "DeRef");
 		dr.classReference.visit(this, indent(arg));
 		dr.memberReference.visit(this, indent(arg));
 
@@ -285,8 +285,7 @@ public class ASTDisplay implements Visitor<String, Object> {
 	 * @return
 	 */
 	public Object visitThisRef(ThisRef tr, String arg) {
-		show(arg, tr);
-		show(arg, "  this");
+		show(arg, "ThisRef \"" + tr.identifier + "\"");
 		return null;
 	}
 
@@ -297,8 +296,7 @@ public class ASTDisplay implements Visitor<String, Object> {
 	 * @return
 	 */
 	public Object visitClassRef(ClassRef cr, String arg) {
-		show(arg, cr);
-		cr.identifier.visit(this, indent(arg));
+		show(arg, "ClassRef + \"" + cr.identifier + "\"");
 		return null;
 	}
 
@@ -309,8 +307,10 @@ public class ASTDisplay implements Visitor<String, Object> {
 	 * @return
 	 */
 	public Object visitMemberRef(MemberRef mr, String arg) {
-		show(arg, mr);
-		mr.identifier.visit(this, indent(arg));
+		if(mr.identifier.declaration instanceof FieldDecl)
+			show(arg, "MemberRef (Field) \"" + mr.identifier + "\"");
+		else
+			show(arg, "MemberRef (Method) \"" + mr.identifier + "\"");
 		return null;
 	}
 
@@ -321,13 +321,12 @@ public class ASTDisplay implements Visitor<String, Object> {
 	 * @return
 	 */
 	public Object visitLocalRef(LocalRef lr, String arg) {
-		show(arg, lr);
-		lr.identifier.visit(this, indent(arg));
+		show(arg, "LocalRef \"" + lr.identifier + "\"");
 		return null;
 	}
 
 	public Object visitIndexedRef(IndexedRef ir, String arg) {
-		show(arg, ir);
+		show(arg, "IndexedRef");
 		ir.ref.visit(this, indent(arg));
 		ir.indexExpr.visit(this, indent(arg));
 		return null;
@@ -341,7 +340,7 @@ public class ASTDisplay implements Visitor<String, Object> {
 
 	// Terminals
 	public Object visitIdentifier(Identifier id, String arg) {
-		show(arg, "\"" + id.spelling + "\" " + id.toString());
+		show(arg, "\"" + id.spelling + "\"");
 		return null;
 	}
 

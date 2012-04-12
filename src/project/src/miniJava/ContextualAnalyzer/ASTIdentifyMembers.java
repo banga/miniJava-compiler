@@ -16,7 +16,9 @@ import miniJava.AbstractSyntaxTrees.ClassDecl;
 import miniJava.AbstractSyntaxTrees.ClassRef;
 import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.DeRef;
+import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ErrorType;
+import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
@@ -64,30 +66,9 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	 */
 	@Override
 	public Void visitPackage(Package prog, IdentificationTable table) {
-		boolean foundMainMethod = false;
-
 		for (ClassDecl cd : prog.classDeclList) {
 			Utilities.addDeclaration(table, cd);
-
-			// The only static method allowed is
-			// public static void main(String[])
-			for (MethodDecl md : cd.methodDeclList) {
-				if (md.isStatic) {
-					if (!foundMainMethod && !md.isPrivate && md.id.spelling.equals("main")
-							&& md.parameterDeclList.size() == 1) {
-						ParameterDecl param = md.parameterDeclList.get(0);
-						if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
-							foundMainMethod = true;
-						}
-					} else {
-						Utilities.reportError(md.id + " is not allowed to be a static method", md.posn);
-					}
-				}
-			}
 		}
-
-		if (!foundMainMethod)
-			Utilities.reportError("Did not find a method with signature public static void main(String[])", prog.posn);
 
 		return null;
 	}
@@ -98,11 +79,18 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	 */
 	@Override
 	public Void visitClassDecl(ClassDecl cd, IdentificationTable table) {
+		cd.id.declaration = cd;
+
 		table.openScope();
 
-		Iterator<FieldDecl> itf = cd.fieldDeclList.iterator();
-		while (itf.hasNext())
-			itf.next().visit(this, table);
+		for (FieldDecl fd : cd.fieldDeclList) {
+			fd.visit(this, table);
+		}
+
+		// Types must be visited only after declarations have been added
+		for (FieldDecl fd : cd.fieldDeclList) {
+			fd.type.visit(this, table);
+		}
 
 		Iterator<MethodDecl> itm = cd.methodDeclList.iterator();
 		while (itm.hasNext())
@@ -113,13 +101,14 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitFieldDecl(FieldDecl fd, IdentificationTable table) {
+		fd.id.declaration = fd;
+
 		if (fd.isStatic) {
 			Utilities.reportError("Static fields are not allowed", fd.posn);
 		} else {
 			if (fd.type.typeKind == TypeKind.VOID) {
 				Utilities.reportError("void is an invalid type for the field " + fd.id.spelling, fd.posn);
 			} else {
-				Utilities.validateType(fd.type, table);
 				Utilities.addDeclaration(table, fd);
 			}
 		}
@@ -128,22 +117,29 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitMethodDecl(MethodDecl md, IdentificationTable table) {
-		Utilities.validateType(md.type, table);
+		md.id.declaration = md;
+
+		md.type.visit(this, table);
 		Utilities.addDeclaration(table, md);
 
 		// Parameter scope
 		table.openScope();
 
-		Iterator<ParameterDecl> itp = md.parameterDeclList.iterator();
-		while (itp.hasNext())
-			itp.next().visit(this, table);
+		for (ParameterDecl pd : md.parameterDeclList) {
+			pd.visit(this, table);
+		}
+
+		// Types must be visited only after all the declarations have been added
+		for (ParameterDecl pd : md.parameterDeclList) {
+			pd.type.visit(this, table);
+		}
 
 		// Scope of local variables
 		table.openScope();
 
-		Iterator<Statement> its = md.statementList.iterator();
-		while (its.hasNext())
-			its.next().visit(this, table);
+		for (Statement st : md.statementList) {
+			st.visit(this, table);
+		}
 
 		table.closeScope();
 
@@ -154,15 +150,20 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitParameterDecl(ParameterDecl pd, IdentificationTable table) {
+		pd.id.declaration = pd;
+
 		if (pd.type.typeKind == TypeKind.VOID)
 			Utilities.reportError("void is an invalid type for the variable " + pd.id.spelling, pd.posn);
+
+		Utilities.addDeclaration(table, pd);
+
 		return null;
 	}
 
 	@Override
 	public Void visitVarDecl(VarDecl vd, IdentificationTable table) {
-		if (vd.type.typeKind == TypeKind.VOID)
-			Utilities.reportError("void is an invalid type for the variable " + vd.id.spelling, vd.posn);
+		vd.id.declaration = vd;
+
 		return null;
 	}
 
@@ -173,11 +174,22 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitClassType(ClassType type, IdentificationTable table) {
+		Declaration decl = table.get(type.spelling);
+
+		if (!(decl instanceof ClassDecl)) {
+			Utilities.reportError(type.spelling + " cannot be resolved to a type", type.posn);
+			return null;
+		}
+
+		type.declaration = (ClassDecl) decl;
+
 		return null;
 	}
 
 	@Override
 	public Void visitArrayType(ArrayType type, IdentificationTable table) {
+		type.eltType.visit(this, table);
+
 		return null;
 	}
 
@@ -212,17 +224,34 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitVardeclStmt(VarDeclStmt stmt, IdentificationTable table) {
-		stmt.varDecl.visit(this, table);
+		if (stmt.varDecl.type.typeKind == TypeKind.VOID)
+			Utilities.reportError("void is an invalid type for the variable " + stmt.varDecl.id.spelling, stmt.varDecl.posn);
+
+		stmt.varDecl.type.visit(this, table);
+
+		// Add the declaration of this identifier at this point
+		// Catches the A A = d; case
+
+		Utilities.addDeclaration(table, stmt.varDecl);
+		stmt.initExp.visit(this, table);
+		stmt.varDecl.initialized = true;
+
 		return null;
 	}
 
 	@Override
 	public Void visitAssignStmt(AssignStmt stmt, IdentificationTable table) {
+		stmt.ref.visit(this, table);
+		stmt.val.visit(this, table);
 		return null;
 	}
 
 	@Override
 	public Void visitCallStmt(CallStmt stmt, IdentificationTable table) {
+		stmt.methodRef.visit(this, table);
+		for (Expression e : stmt.argList)
+			e.visit(this, table);
+
 		return null;
 	}
 
@@ -249,6 +278,8 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitWhileStmt(WhileStmt stmt, IdentificationTable table) {
+		stmt.cond.visit(this, table);
+
 		if (stmt.body instanceof VarDeclStmt) {
 			Utilities.reportError("Variable declaration cannot be the only statement in a while statement",
 					stmt.body.posn);
@@ -261,21 +292,35 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitUnaryExpr(UnaryExpr expr, IdentificationTable table) {
+		expr.operator.visit(this, table);
+		expr.expr.visit(this, table);
+
 		return null;
 	}
 
 	@Override
 	public Void visitBinaryExpr(BinaryExpr expr, IdentificationTable table) {
+		expr.operator.visit(this, table);
+		expr.left.visit(this, table);
+		expr.right.visit(this, table);
+
 		return null;
 	}
 
 	@Override
 	public Void visitRefExpr(RefExpr expr, IdentificationTable table) {
+		expr.ref.visit(this, table);
+
 		return null;
 	}
 
 	@Override
 	public Void visitCallExpr(CallExpr expr, IdentificationTable table) {
+		expr.functionRef.visit(this, table);
+		for (Expression e : expr.argList) {
+			e.visit(this, table);
+		}
+
 		return null;
 	}
 
@@ -285,17 +330,32 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	}
 
 	@Override
-	public Void visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
+	public Void visitNewArrayExpr(NewArrayExpr expr, IdentificationTable table) {
+		expr.eltType.visit(this, table);
+		expr.sizeExpr.visit(this, table);
+
 		return null;
 	}
 
 	@Override
-	public Void visitNewArrayExpr(NewArrayExpr expr, IdentificationTable table) {
+	public Void visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
+		expr.classtype.visit(this, table);
+
 		return null;
 	}
 
 	@Override
 	public Void visitQualifiedRef(QualifiedRef ref, IdentificationTable table) {
+		if(!ref.thisRelative && ref.qualifierList.size() > 0) {
+			Identifier id = ref.qualifierList.get(0);
+			Declaration decl = table.get(id.spelling);
+	
+			// Handle int x = x + 2; case
+			if (decl instanceof VarDecl && !((VarDecl) decl).initialized) {
+				Utilities.reportError("Local variable " + id + " may not have been initialized", id.posn);
+			}
+		}
+
 		return null;
 	}
 

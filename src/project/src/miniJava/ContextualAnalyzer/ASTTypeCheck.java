@@ -50,14 +50,47 @@ import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
 
 public class ASTTypeCheck implements Visitor<Type, Type> {
+	// Table containing predefined and class level declarations
+	IdentificationTable table;
+
+	public ASTTypeCheck(IdentificationTable table) {
+		this.table = table;
+	}
+
+	public MethodDecl typeCheck(Package prog) {
+		MethodDecl mainMethod = null;
+
+		visitPackage(prog, null);
+
+		// The only static method allowed is
+		// public static void main(String[])
+		for (ClassDecl cd : prog.classDeclList) {
+			for (MethodDecl md : cd.methodDeclList) {
+				if (md.isStatic) {
+					if (mainMethod == null && md.type.equals(BaseType.VOID_TYPE) && !md.isPrivate
+							&& md.id.spelling.equals("main") && md.parameterDeclList.size() == 1) {
+						ParameterDecl param = md.parameterDeclList.get(0);
+						if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
+							mainMethod = md;
+						}
+					} else {
+						Utilities.reportError(md.id + " is not allowed to be a static method", md.posn);
+					}
+				}
+			}
+		}
+
+		if (mainMethod == null)
+			Utilities.reportError("Did not find a method with signature public static void main(String[])", prog.posn);
+
+		return mainMethod;
+	}
 
 	@Override
 	public Type visitPackage(Package prog, Type type) {
-		Iterator<ClassDecl> it = prog.classDeclList.iterator();
-		while (it.hasNext()) {
-			ClassDecl cd = it.next();
+		for (ClassDecl cd : prog.classDeclList)
 			cd.visit(this, null);
-		}
+
 		return null;
 	}
 
@@ -92,8 +125,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		Type returnType = (md.returnExp == null) ? BaseType.VOID_TYPE : md.returnExp.visit(this, null);
 
 		if (!Utilities.getTypeEquivalence(returnType, md.type)) {
-			Utilities.reportError("Method " + md.id.spelling + " must return a result of type " + md.type,
-					md.posn);
+			Utilities.reportError("Method " + md.id.spelling + " must return a result of type " + md.type, md.posn);
 		}
 
 		return null;
@@ -256,7 +288,8 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			break;
 
 		default:
-			//throw new RuntimeException("A wild operator appeared! Abort! Abort!");
+			// throw new
+			// RuntimeException("A wild operator appeared! Abort! Abort!");
 			return null;
 		}
 
@@ -265,7 +298,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitRefExpr(RefExpr expr, Type arg) {
-		return expr.ref.visit(this, null);
+		return Utilities.handleUnsupportedType(expr.ref.visit(this, null), table);
 	}
 
 	private Type validateMethodReference(Reference methodRef, ExprList argList) {
@@ -280,8 +313,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 		if (methodDecl.isStatic) {
 			// Static methods cannot be invoked
-			Utilities.reportError("Static method " + methodDecl.id.spelling + " cannot be invoked",
-					methodRef.posn);
+			Utilities.reportError("Static method " + methodDecl.id.spelling + " cannot be invoked", methodRef.posn);
 			return new ErrorType(methodRef.posn);
 		}
 
@@ -299,7 +331,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 				return new ErrorType(e.posn);
 		}
 
-		return methodDecl.type;		
+		return Utilities.handleUnsupportedType(methodDecl.type, table);
 	}
 
 	@Override
@@ -319,7 +351,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitNewObjectExpr(NewObjectExpr expr, Type arg) {
-		return expr.classtype;
+		return Utilities.handleUnsupportedType(expr.classtype, table);
 	}
 
 	@Override
@@ -337,7 +369,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	@Override
 	public Type visitQualifiedRef(QualifiedRef ref, Type arg) {
 		// This should not ever get visited
-		//throw new RuntimeException("Here be Dragons!");
+		// throw new RuntimeException("Here be Dragons!");
 		return null;
 	}
 
@@ -358,12 +390,12 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			return new ErrorType(ref.posn);
 		}
 
-		return ((ArrayType) refType).eltType;
+		return Utilities.handleUnsupportedType(((ArrayType) refType).eltType, table);
 	}
 
 	@Override
 	public Type visitIdentifier(Identifier id, Type arg) {
-		return id.declaration.type;
+		return Utilities.handleUnsupportedType(id.declaration.type, table);
 	}
 
 	@Override
@@ -383,17 +415,17 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitThisRef(ThisRef ref, Type arg) {
-		return ref.identifier.declaration.type;
+		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);
 	}
 
 	@Override
 	public Type visitLocalRef(LocalRef ref, Type arg) {
-		return ref.identifier.declaration.type;
+		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);
 	}
 
 	@Override
 	public Type visitClassRef(ClassRef ref, Type arg) {
-		return ref.identifier.declaration.type;
+		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);
 	}
 
 	@Override
@@ -403,9 +435,9 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitMemberRef(MemberRef ref, Type arg) {
-		return ref.identifier.declaration.type;
+		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);
 	}
-	
+
 	@Override
 	public Type visitBadRef(BadRef ref, Type arg) {
 		return new ErrorType(ref.posn);

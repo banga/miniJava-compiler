@@ -228,7 +228,7 @@ public class Parser {
 	private Type parseType() throws SyntaxErrorException {
 		Type type;
 		SourcePosition typePos = currentToken.position;
-		
+
 		switch (currentToken.type) {
 		case INT:
 		case IDENTIFIER:
@@ -239,7 +239,7 @@ public class Parser {
 
 			case IDENTIFIER:
 				Identifier typeId = new Identifier(currentToken.spelling, typePos);
-				type = ClassType.fromSpelling(typeId);;
+				type = new ClassType(typeId.spelling, typeId.posn);
 				break;
 
 			default:
@@ -250,7 +250,7 @@ public class Parser {
 				// ArrayType
 				consume();
 				expect(TokenType.RSQUARE);
-				type = new ArrayType(type, currentToken.spelling, typePos);				
+				type = new ArrayType(type, currentToken.spelling, typePos);
 			}
 			break;
 
@@ -264,7 +264,7 @@ public class Parser {
 				type = new BaseType(TypeKind.VOID, currentToken.spelling, typePos);
 				break;
 			default:
-				throw new SyntaxErrorException(currentToken); 
+				throw new SyntaxErrorException(currentToken);
 			}
 			consume();
 			break;
@@ -272,7 +272,7 @@ public class Parser {
 		default:
 			throw new SyntaxErrorException("expected a Type, found ", currentToken);
 		}
- 
+
 		return type;
 	}
 
@@ -462,7 +462,7 @@ public class Parser {
 			// this(ArgumentList?);
 			case LPAREN:
 				consume();
-				ExprList thisRefExprList = null;
+				ExprList thisRefExprList = new ExprList();
 				if (currentToken.type != TokenType.RPAREN) {
 					thisRefExprList = parseArgumentList();
 				}
@@ -495,7 +495,7 @@ public class Parser {
 
 				if (currentToken.type == TokenType.RSQUARE) {
 					// id[] id = Expression; //VarDeclStmt
-					Type idType = ClassType.fromSpelling(id1);
+					Type idType = new ClassType(id1.spelling, id1.posn);
 					Type idArrType = new ArrayType(idType, idType.spelling, idType.posn);
 					consume();
 					Identifier id2 = new Identifier(currentToken.spelling, currentToken.position);
@@ -564,7 +564,7 @@ public class Parser {
 			case IDENTIFIER:
 				// id id = Expression; //VarDeclStmt
 				Identifier id2 = new Identifier(currentToken.spelling, currentToken.position);
-				Type id1Class = ClassType.fromSpelling(id1);
+				Type id1Class = new ClassType(id1.spelling, id1.posn);
 				consume();
 				expect(TokenType.EQUALTO);
 				Expression idIdExpr1 = parseExpression();
@@ -782,7 +782,7 @@ public class Parser {
 			switch (currentToken.type) {
 			case INT:
 				// new int [ Expression ]
-				newType = new BaseType(TypeKind.INT,currentToken.spelling, currentToken.position);
+				newType = new BaseType(TypeKind.INT, currentToken.spelling, currentToken.position);
 				consume();
 				expect(TokenType.LSQUARE);
 				arrayExpr = parseExpression();
@@ -791,7 +791,7 @@ public class Parser {
 				break;
 
 			case IDENTIFIER:
-				newType = ClassType.fromSpelling(new Identifier(currentToken.spelling, currentToken.position));
+				newType = new ClassType(currentToken.spelling, currentToken.position);
 				consume();
 				switch (currentToken.type) {
 				case LPAREN:
