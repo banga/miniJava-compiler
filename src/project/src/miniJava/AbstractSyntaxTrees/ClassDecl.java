@@ -15,6 +15,12 @@ public class ClassDecl extends Declaration {
 		fieldDeclList = fdl;
 		methodDeclList = mdl;
 		((ClassType) type).declaration = this;
+
+		runtimeEntity.size = fdl.size();
+		int fieldDisplacement = 0;
+		for(FieldDecl fd : fdl) {
+			fd.runtimeEntity.displacement = fieldDisplacement++;			
+		}
 	}
 
 	public <A, R> R visit(Visitor<A, R> v, A o) {

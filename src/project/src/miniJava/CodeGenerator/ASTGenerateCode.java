@@ -41,6 +41,7 @@ import miniJava.AbstractSyntaxTrees.RefExpr;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.StatementList;
 import miniJava.AbstractSyntaxTrees.StatementType;
+import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.AbstractSyntaxTrees.ThisRef;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
 import miniJava.AbstractSyntaxTrees.UnsupportedType;
@@ -49,6 +50,7 @@ import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
 import miniJava.ContextualAnalyzer.IdentificationTable;
+import miniJava.ContextualAnalyzer.Utilities;
 
 public class ASTGenerateCode implements Visitor<Object, Void> {
 
@@ -85,12 +87,8 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 
 	@Override
 	public Void visitClassDecl(ClassDecl cd, Object arg) {
-		cd.runtimeEntity = new ClassRuntimeEntity(cd.fieldDeclList.size());
-
-		int d = 0;
 		for (FieldDecl fd : cd.fieldDeclList) {
 			fd.visit(this, null);
-			fd.runtimeEntity.displacement = d++;
 		}
 
 		for (MethodDecl md : cd.methodDeclList) {
@@ -143,7 +141,7 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		localDisplacement -= numAllocated; // We don't POP because RETURN does
 											// that automatically
 
-		//Machine.emit(Op.HALT, 4, 0, 0);
+		// Machine.emit(Op.HALT, 4, 0, 0);
 
 		if (md.returnExp != null) {
 			Machine.emit(Op.RETURN, 1, 0, md.parameterDeclList.size());
@@ -188,22 +186,25 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 
 	@Override
 	public Void visitAssignStmt(AssignStmt stmt, Object arg) {
-		stmt.val.visit(this, null); // An expression always returns a value
-		stmt.ref.visit(this, FetchType.ADDRESS);
-
 		// The lhs of an assignment statement can be:
 		// 1. A local variable
 		// 2. An element of an array, like a[2]. Note that a.b[2] is not allowed
 		// 3. A field of an object or of this
 		if (stmt.ref instanceof LocalRef) {
 			// local variable, stored on the stack
-			Machine.emit(Op.STOREI);
-		} else if (stmt.ref instanceof IndexedRef) {
-			// array element
-			Machine.emit(Prim.arrayupd);
+			stmt.val.visit(this, null);
+			Machine.emit(Op.STORE, Reg.LB, getLocalRefDisplacement((LocalRef) stmt.ref));
 		} else {
-			// field
-			Machine.emit(Prim.fieldupd);
+			stmt.ref.visit(this, FetchType.ADDRESS);
+			stmt.val.visit(this, null);
+
+			if (stmt.ref instanceof IndexedRef) {
+				// array element
+				Machine.emit(Prim.arrayupd);
+			} else {
+				// field
+				Machine.emit(Prim.fieldupd);
+			}
 		}
 
 		return null;
@@ -217,9 +218,14 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			exp.visit(this, null);
 
 		// Handle System.out.println(int x)
-		if (stmt.methodRef.getDeclaration() == IdentificationTable.PRINTLN_DECL) {
+		MethodDecl methodDecl = (MethodDecl) stmt.methodRef.getDeclaration();
+		if (methodDecl == IdentificationTable.PRINTLN_INT_DECL) {
 			Machine.emit(Prim.putint);
 			Machine.emit(Prim.puteol);
+			return null;
+		} else if (methodDecl == IdentificationTable.PRINTLN_STRING_DECL) {
+//			Machine.emit(Prim.putint);
+//			Machine.emit(Prim.puteol);
 			return null;
 		}
 
@@ -387,6 +393,19 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	}
 
 	@Override
+	public Void visitStringLiteral(StringLiteral str, Object arg) {
+		Machine.emit(Op.LOADL, str.spelling.length());
+		Machine.emit(Prim.newarr);
+		for(int i = 0; i < str.spelling.length(); i++) {
+			Machine.emit(Op.LOAD, Reg.ST, -1); // Copy array base address
+			Machine.emit(Op.LOADL, i);
+			Machine.emit(Op.LOADL, str.spelling.charAt(i));
+			Machine.emit(Prim.arrayupd);
+		}
+		return null;
+	}
+
+	@Override
 	public Void visitNewObjectExpr(NewObjectExpr expr, Object arg) {
 		Machine.emit(Op.LOADL, -1);
 		Machine.emit(Op.LOADL, expr.classtype.declaration.runtimeEntity.size);
@@ -401,29 +420,26 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		return null;
 	}
 
-	@Override
-	public Void visitLocalRef(LocalRef ref, Object arg) {
-		int displacement;
-
+	private int getLocalRefDisplacement(LocalRef ref) {
 		Declaration decl = ref.identifier.declaration;
 		if (decl instanceof VarDecl) {
-			displacement = ((VarDecl) ref.identifier.declaration).runtimeEntity.displacement;
+			return ((VarDecl) decl).runtimeEntity.displacement;
 		} else if (decl instanceof ParameterDecl) {
-			displacement = ((ParameterDecl) ref.identifier.declaration).runtimeEntity.displacement;
+			return ((ParameterDecl) decl).runtimeEntity.displacement;
 		} else {
 			throw new RuntimeException("LocalRef is not a variable or parameter!");
 		}
+	}
 
-		switch ((FetchType) arg) {
+	@Override
+	public Void visitLocalRef(LocalRef ref, Object arg) {
+		// We will only visit a LocalRef to get its value
+		// Updating values is done in the AssignStmt itself
 
-		case ADDRESS:
-			Machine.emit(Op.LOADA, Reg.LB, displacement);
-			break;
+		if ((FetchType) arg != FetchType.VALUE)
+			throw new RuntimeException("visitLocalRef should only be called for VALUE");
 
-		case VALUE:
-			Machine.emit(Op.LOAD, Reg.LB, displacement);
-			break;
-		}
+		Machine.emit(Op.LOAD, Reg.LB, getLocalRefDisplacement(ref));
 
 		return null;
 	}
@@ -455,16 +471,13 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			// So, we can assume that we are generating code for accessing a
 			// member of the current instance
 			int displacement = ((FieldDecl) decl).runtimeEntity.displacement;
+			Machine.emit(Op.LOADA, Reg.OB, 0);
+			Machine.emit(Op.LOADL, displacement);
 
-			switch ((FetchType) arg) {
-			case ADDRESS:
-				Machine.emit(Op.LOADA, Reg.OB, displacement);
-				break;
-
-			case VALUE:
-				Machine.emit(Op.LOAD, Reg.OB, displacement);
-				break;
+			if (((FetchType) arg) == FetchType.VALUE) {
+				Machine.emit(Prim.fieldref);
 			}
+
 		} else if (decl instanceof MethodDecl) {
 			if ((FetchType) arg != FetchType.METHOD)
 				throw new RuntimeException("MethodRef called for MethodDecl with unknown arg: " + arg);
@@ -485,8 +498,24 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	@Override
 	public Void visitDeRef(DeRef ref, Object arg) {
 		ref.classReference.visit(this, FetchType.VALUE);
+		
+		// Special case for array.length
+		Declaration memberDecl  = ref.memberReference.getDeclaration();
+		if(memberDecl == ArrayType.LENGTH_DECL) {
+			if((FetchType) arg != FetchType.VALUE) {
+				Utilities.reportError("Cannot modify the length field of an array", ref.memberReference.posn);
+				return null;
+			}
+			Machine.emit(Prim.pred);
+			Machine.emit(Op.LOADI);
+			return null;
+		}
 
 		switch ((FetchType) arg) {
+		case ADDRESS:
+			Machine.emit(Op.LOADL, ((FieldDecl) ref.memberReference.identifier.declaration).runtimeEntity.displacement);
+			break;
+
 		case VALUE:
 			Machine.emit(Op.LOADL, ((FieldDecl) ref.memberReference.identifier.declaration).runtimeEntity.displacement);
 			Machine.emit(Prim.fieldref);

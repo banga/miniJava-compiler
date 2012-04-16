@@ -37,6 +37,7 @@ import miniJava.AbstractSyntaxTrees.QualifiedRef;
 import miniJava.AbstractSyntaxTrees.RefExpr;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.StatementType;
+import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.AbstractSyntaxTrees.ThisRef;
 import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
@@ -225,7 +226,8 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	@Override
 	public Void visitVardeclStmt(VarDeclStmt stmt, IdentificationTable table) {
 		if (stmt.varDecl.type.typeKind == TypeKind.VOID)
-			Utilities.reportError("void is an invalid type for the variable " + stmt.varDecl.id.spelling, stmt.varDecl.posn);
+			Utilities.reportError("void is an invalid type for the variable " + stmt.varDecl.id.spelling,
+					stmt.varDecl.posn);
 
 		stmt.varDecl.type.visit(this, table);
 
@@ -346,10 +348,10 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitQualifiedRef(QualifiedRef ref, IdentificationTable table) {
-		if(!ref.thisRelative && ref.qualifierList.size() > 0) {
+		if (!ref.thisRelative && ref.qualifierList.size() > 0) {
 			Identifier id = ref.qualifierList.get(0);
 			Declaration decl = table.get(id.spelling);
-	
+
 			// Handle int x = x + 2; case
 			if (decl instanceof VarDecl && !((VarDecl) decl).initialized) {
 				Utilities.reportError("Local variable " + id + " may not have been initialized", id.posn);
@@ -381,6 +383,11 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitBooleanLiteral(BooleanLiteral bool, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public Void visitStringLiteral(StringLiteral bool, IdentificationTable arg) {
 		return null;
 	}
 

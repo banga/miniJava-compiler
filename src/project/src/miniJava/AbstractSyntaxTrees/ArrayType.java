@@ -41,4 +41,16 @@ public class ArrayType extends Type {
 	}
 
 	public Type eltType;
+	public ClassDecl declaration = ARRAY_DECL;
+
+	public static final ClassDecl ARRAY_DECL = new ClassDecl(new Identifier("Array", null), new FieldDeclList(),
+			new MethodDeclList(), null);
+	public static final FieldDecl LENGTH_DECL = new FieldDecl(false, false, BaseType.INT_TYPE, null, null);
+	static {
+		// Create the length field for arrays:
+		LENGTH_DECL.id = new Identifier("length", null);
+		LENGTH_DECL.id.declaration = LENGTH_DECL;
+		LENGTH_DECL.runtimeEntity.displacement = -1;
+		ARRAY_DECL.fieldDeclList.add(LENGTH_DECL);
+	}
 }

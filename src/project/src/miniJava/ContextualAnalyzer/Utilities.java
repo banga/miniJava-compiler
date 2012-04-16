@@ -2,7 +2,6 @@ package miniJava.ContextualAnalyzer;
 
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.BaseType;
-import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.Type;
@@ -91,9 +90,9 @@ public abstract class Utilities {
 	}
 
 	public static Type handleUnsupportedType(Type type, IdentificationTable table) {
-		if (type instanceof ClassType && ((ClassType) type).spelling.equals("String")
-				&& table.getScope("String") == IdentificationTable.PREDEFINED_SCOPE)
-			return new UnsupportedType(IdentificationTable.STRING_DECL, type.posn);
+//		if (type instanceof ClassType && ((ClassType) type).spelling.equals("String")
+//				&& table.getScope("String") == IdentificationTable.PREDEFINED_SCOPE)
+//			return new UnsupportedType(IdentificationTable.STRING_DECL, type.posn);
 		return type;
 	}
 

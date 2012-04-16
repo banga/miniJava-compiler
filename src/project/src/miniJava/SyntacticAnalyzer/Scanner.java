@@ -117,6 +117,16 @@ public class Scanner {
 				}
 				return new Token(TokenType.SLASH, "/", position);
 
+			case '"':
+				nextChar();
+				StringBuilder str = new StringBuilder();
+				while(currentChar != '"' && currentChar != EOT) {
+					str.append(currentChar);
+					nextChar();
+				}
+				expect('"');
+				return new Token(TokenType.STRING, str.toString(), position);
+
 			case EOT:
 				return new Token(TokenType.EOT, "", position);
 

@@ -44,6 +44,7 @@ public enum TokenType {
 
 	NUMBER,
 	IDENTIFIER,
+	STRING,
 	EOT; 
 
 	public final String spelling;

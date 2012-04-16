@@ -39,6 +39,7 @@ import miniJava.AbstractSyntaxTrees.RefExpr;
 import miniJava.AbstractSyntaxTrees.Reference;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.StatementType;
+import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.AbstractSyntaxTrees.ThisRef;
 import miniJava.AbstractSyntaxTrees.Type;
 import miniJava.AbstractSyntaxTrees.TypeKind;
@@ -413,6 +414,11 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		return new BaseType(TypeKind.BOOLEAN, "boolean", bool.posn);
 	}
 
+	@Override
+	public Type visitStringLiteral(StringLiteral str, Type arg) {
+		return IdentificationTable.STRING_DECL.type;
+	}	
+	
 	@Override
 	public Type visitThisRef(ThisRef ref, Type arg) {
 		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);

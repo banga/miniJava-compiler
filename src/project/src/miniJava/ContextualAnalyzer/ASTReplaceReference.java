@@ -38,6 +38,7 @@ import miniJava.AbstractSyntaxTrees.RefExpr;
 import miniJava.AbstractSyntaxTrees.Reference;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.StatementType;
+import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.AbstractSyntaxTrees.ThisRef;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
 import miniJava.AbstractSyntaxTrees.UnsupportedType;
@@ -324,25 +325,29 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 			Identifier parentID = (currentIdentifierIsThis) ? currentClass.id : qRef.qualifierList.get(i - 1);
 			boolean isParentClassName = parentID.declaration instanceof ClassDecl;
 
-			if (!(parentID.declaration.type instanceof ClassType)) {
-				Utilities.reportError(parentID + " is not an instance or a class", parentID.posn);
-				return new BadRef(parentID, parentID.posn);
-			}
+			ClassDecl parentClassDecl;
 
-			ClassType parentClassType = (ClassType) parentID.declaration.type;
-			try {
-				parentClassType.declaration = (ClassDecl) table.get(parentClassType.spelling);
+			if (parentID.declaration.type instanceof ClassType) {
+				ClassType parentClassType = (ClassType) parentID.declaration.type;
+				try {
+					parentClassType.declaration = (ClassDecl) table.get(parentClassType.spelling);
 
-				if (parentClassType.declaration == null) {
+					if (parentClassType.declaration == null) {
+						Utilities.reportError(parentClassType.spelling + " is not a valid type", parentID.posn);
+						return new BadRef(parentID, parentID.posn);
+					}
+				} catch (ClassCastException e) {
 					Utilities.reportError(parentClassType.spelling + " is not a valid type", parentID.posn);
 					return new BadRef(parentID, parentID.posn);
 				}
-			} catch (ClassCastException e) {
-				Utilities.reportError(parentClassType.spelling + " is not a valid type", parentID.posn);
+				parentClassDecl = parentClassType.declaration;
+			} else if (parentID.declaration.type instanceof ArrayType) {
+				ArrayType parentArrayType = (ArrayType) parentID.declaration.type;
+				parentClassDecl = parentArrayType.declaration;
+			} else {
+				Utilities.reportError(parentID + " is not an instance or a class", parentID.posn);
 				return new BadRef(parentID, parentID.posn);
 			}
-
-			ClassDecl parentClassDecl = parentClassType.declaration;
 
 			id = qRef.qualifierList.get(i);
 			id.declaration = parentClassDecl.getFieldDeclaration(id.spelling);
@@ -420,6 +425,11 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 
 	@Override
 	public AST visitBooleanLiteral(BooleanLiteral bool, IdentificationTable table) {
+		return null;
+	}
+
+	@Override
+	public AST visitStringLiteral(StringLiteral bool, IdentificationTable arg) {
 		return null;
 	}
 

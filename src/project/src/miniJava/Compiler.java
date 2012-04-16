@@ -9,7 +9,6 @@ import mJAM.Disassembler;
 import mJAM.Interpreter;
 import mJAM.ObjectFile;
 import miniJava.AbstractSyntaxTrees.AST;
-import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.CodeGenerator.ASTGenerateCode;
 import miniJava.ContextualAnalyzer.ASTIdentifyMembers;
@@ -22,7 +21,8 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
 public class Compiler {
-	private static void printOffendingLine(String fileName, SourcePosition position) {
+	private static void printOffendingLine(String fileName,
+			SourcePosition position) {
 		try {
 			BufferedReader in = new BufferedReader(new FileReader(fileName));
 			for (int i = 1; i < position.line; i++)
@@ -41,22 +41,27 @@ public class Compiler {
 		}
 	}
 
-	public static void generateAndExecute(AST ast, MethodDecl mainMethod, String fileName) {
+	public static void generateAndExecute(AST ast, MethodDecl mainMethod,
+			String fileName) {
 		String prefix = fileName.substring(0, fileName.lastIndexOf('.'));
 
 		ASTGenerateCode generatecode = new ASTGenerateCode();
-		generatecode.visitPackage((miniJava.AbstractSyntaxTrees.Package) ast, mainMethod);
+		generatecode.visitPackage((miniJava.AbstractSyntaxTrees.Package) ast,
+				mainMethod);
 
 		/* write code as an object file */
 		String objectCodeFileName = prefix + ".mJAM";
 		ObjectFile objF = new ObjectFile(objectCodeFileName);
-		System.out.print("Writing object code file " + objectCodeFileName + " ... ");
+		System.out.print("Writing object code file " + objectCodeFileName
+				+ " ... ");
 		if (objF.write()) {
 			System.out.println("FAILED!");
 			return;
 		} else {
 			System.out.println("SUCCEEDED");
 		}
+
+		//TODO: Comment out everything below this line
 
 		/* create asm file using disassembler */
 		System.out.print("Writing assembly file ... ");
@@ -83,29 +88,40 @@ public class Compiler {
 
 		try {
 			String fileName = args[0];
+			FileInputStream fileStream = new FileInputStream(fileName);
 
-			Parser parser = new Parser(new FileInputStream(fileName));
-			AST ast = parser.parseProgram();
+			if (fileName.endsWith(".java") || fileName.endsWith(".mjava")) {
 
-			/* Identification */
-			ASTIdentifyMembers identify = new ASTIdentifyMembers();
-			IdentificationTable table = identify.createIdentificationTable(ast);
+				Parser parser = new Parser(fileStream);
+				AST ast = parser.parseProgram();
 
-			/* AST modification for QualifiedRefs */
-			ASTReplaceReference replace = new ASTReplaceReference();
-			replace.visitPackage((miniJava.AbstractSyntaxTrees.Package) ast, table);
+				/* Identification */
+				ASTIdentifyMembers identify = new ASTIdentifyMembers();
+				IdentificationTable table = identify
+						.createIdentificationTable(ast);
 
-			/* Type checking */
-			ASTTypeCheck typecheck = new ASTTypeCheck(table);
-			MethodDecl mainMethod = typecheck.typeCheck((miniJava.AbstractSyntaxTrees.Package) ast);
+				/* AST modification for QualifiedRefs */
+				ASTReplaceReference replace = new ASTReplaceReference();
+				replace.visitPackage(
+						(miniJava.AbstractSyntaxTrees.Package) ast, table);
 
-			Utilities.exitOnError();
+				/* Type checking */
+				ASTTypeCheck typecheck = new ASTTypeCheck(table);
+				MethodDecl mainMethod = typecheck
+						.typeCheck((miniJava.AbstractSyntaxTrees.Package) ast);
 
-			generateAndExecute(ast, mainMethod, fileName);
+				Utilities.exitOnError();
 
-			// table.display();
-			ASTDisplay display = new ASTDisplay();
-			display.showTree(ast);
+				generateAndExecute(ast, mainMethod, fileName);
+
+				// table.display();
+				// ASTDisplay display = new ASTDisplay();
+				// display.showTree(ast);
+
+			} else {
+				System.err.println("The file extension is incorrect");
+				System.exit(4);
+			}
 
 		} catch (SyntaxErrorException e) {
 			// e.printStackTrace();

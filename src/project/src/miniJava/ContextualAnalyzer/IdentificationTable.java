@@ -12,7 +12,6 @@ import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.FieldDeclList;
 import miniJava.AbstractSyntaxTrees.Identifier;
-import miniJava.AbstractSyntaxTrees.MemberDecl;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.MethodDeclList;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
@@ -38,8 +37,8 @@ public class IdentificationTable {
 	public static final ClassDecl STRING_DECL = new ClassDecl(new Identifier("String", null), new FieldDeclList(),
 			new MethodDeclList(), null);
 
-	public static MethodDecl PRINTLN_DECL;
-	
+	public static MethodDecl PRINTLN_INT_DECL, PRINTLN_STRING_DECL;
+
 	// A stack of tables for each scope
 	List<HashMap<String, Declaration>> scopes = new ArrayList<HashMap<String, Declaration>>();
 
@@ -50,20 +49,21 @@ public class IdentificationTable {
 		 * _PrintStream class and methods
 		 */
 		MethodDeclList printStreamMethods = new MethodDeclList();
-		ParameterDeclList params = new ParameterDeclList();
-		params.add(new ParameterDecl(BaseType.INT_TYPE, new Identifier("n", null), null));
-
-		// public void print(int n);
-		MemberDecl print = new FieldDecl(false, false, BaseType.VOID_TYPE, new Identifier(PRINTSTREAM_PRINT, null),
-				null);
-		print = new MethodDecl(print, params, null, null, null);
-		printStreamMethods.add((MethodDecl) print);
+		ParameterDeclList intParam = new ParameterDeclList();
+		intParam.add(new ParameterDecl(BaseType.INT_TYPE, new Identifier("n", null), null));
 
 		// public void println(int n);
-		MemberDecl println = new FieldDecl(false, false, BaseType.VOID_TYPE, new Identifier(PRINTSTREAM_PRINTLN, null),
-				null);
-		PRINTLN_DECL = new MethodDecl(println, params, null, null, null);
-		printStreamMethods.add(PRINTLN_DECL);
+		FieldDecl fd = new FieldDecl(false, false, BaseType.VOID_TYPE, new Identifier(PRINTSTREAM_PRINTLN, null), null);
+		PRINTLN_INT_DECL = new MethodDecl(fd, intParam, null, null, null);
+		printStreamMethods.add(PRINTLN_INT_DECL);
+
+		ParameterDeclList stringParam = new ParameterDeclList();
+		stringParam.add(new ParameterDecl(STRING_DECL.type, new Identifier("str", null), null));
+
+		// public void println(String str);
+		fd = new FieldDecl(false, false, BaseType.VOID_TYPE, new Identifier(PRINTSTREAM_PRINTLN, null), null);
+		PRINTLN_STRING_DECL = new MethodDecl(fd, stringParam, null, null, null);
+		printStreamMethods.add(PRINTLN_STRING_DECL);
 
 		// class _PrintStream
 		ClassDecl printStreamDecl = new ClassDecl(new Identifier(PRINTSTREAM, null), new FieldDeclList(),

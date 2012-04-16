@@ -38,6 +38,7 @@ import miniJava.AbstractSyntaxTrees.RefExpr;
 import miniJava.AbstractSyntaxTrees.Reference;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.StatementList;
+import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.AbstractSyntaxTrees.Type;
 import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
@@ -761,7 +762,7 @@ public class Parser {
 	 * 
 	 * <pre>
 	 * Term ::= <b>(</b> Expression <b>)</b>                 // Expression
-	 *       | <b>num</b> | <b>true</b> | <b>false</b>              // LiteralExpr
+	 *       | <b>num</b> | <b>true</b> | <b>false</b>  | <b>string</b>    // LiteralExpr
 	 *       | Reference ( <b>[</b> Expression <b>]</b> )?   // RefExpr
 	 *       | Reference <b>(</b> ArgumentList? <b>)</b>     // CallExpr
 	 *       | <b>new</b> (id <b>( )</b> | <b>int [</b> Expression <b>]</b> | id <b>[</b> Expression <b>]</b> )  // NewObjectExpr, NewArrayExpr
@@ -850,11 +851,19 @@ public class Parser {
 		case NUMBER:
 		case TRUE:
 		case FALSE:
-			Literal literal;
-			if (currentToken.type == TokenType.NUMBER) {
+		case STRING:
+			Literal literal = null;
+			switch (currentToken.type) {
+			case NUMBER:
 				literal = new IntLiteral(currentToken.spelling, currentToken.position);
-			} else {
+				break;
+			case TRUE:
+			case FALSE:
 				literal = new BooleanLiteral(currentToken.spelling, currentToken.position);
+				break;
+			case STRING:
+				literal = new StringLiteral(currentToken.spelling, currentToken.position);
+				break;
 			}
 			consume();
 			expr = new LiteralExpr(literal, exprPos);
