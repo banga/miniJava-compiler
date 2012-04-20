@@ -26,4 +26,8 @@ public abstract class SimpleRef extends Reference {
 		return identifier.declaration;
 	}
 
+	@Override
+	public void setDeclaration(Declaration decl) {
+		identifier.declaration = decl;
+	}
 }

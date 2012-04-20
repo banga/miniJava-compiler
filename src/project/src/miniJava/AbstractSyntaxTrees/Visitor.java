@@ -21,6 +21,8 @@ public interface Visitor<ArgType, ResultType> {
 
 	public ResultType visitMethodDecl(MethodDecl md, ArgType arg);
 
+	public ResultType visitOverloadedMethodDecl(OverloadedMethodDecl md, ArgType arg);
+
 	public ResultType visitParameterDecl(ParameterDecl pd, ArgType arg);
 
 	public ResultType visitVarDecl(VarDecl decl, ArgType arg);

@@ -18,4 +18,11 @@ public abstract class Reference extends AST {
 	 * @return
 	 */
 	public abstract Declaration getDeclaration();
+	
+	
+	/**
+	 * Update the declaration of the entity being referenced
+	 * (used to resolve overloaded methods)
+	 */
+	public abstract void setDeclaration(Declaration decl);
 }

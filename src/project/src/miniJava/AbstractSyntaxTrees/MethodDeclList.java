@@ -5,18 +5,29 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
-public class MethodDeclList implements Iterable<MethodDecl> {
+public class MethodDeclList implements Iterable<OverloadedMethodDecl> {
 	public MethodDeclList() {
-		methodDeclList = new ArrayList<MethodDecl>();
+		methodDeclList = new ArrayList<OverloadedMethodDecl>();
 	}
 
-	public void add(MethodDecl cd) {
-		methodDeclList.add(cd);
+	public void add(MethodDecl md) {
+		for (OverloadedMethodDecl omd : methodDeclList) {
+			if (omd.id.spelling.equals(md.id.spelling)) {
+				omd.add(md);
+				return;
+			}
+		}
+
+		OverloadedMethodDecl omd = new OverloadedMethodDecl(md);
+		omd.add(md);
+		methodDeclList.add(omd);
 	}
 
-	public MethodDecl get(int i) {
+	public OverloadedMethodDecl get(int i) {
 		return methodDeclList.get(i);
 	}
 
@@ -24,9 +35,9 @@ public class MethodDeclList implements Iterable<MethodDecl> {
 		return methodDeclList.size();
 	}
 
-	public Iterator<MethodDecl> iterator() {
+	public Iterator<OverloadedMethodDecl> iterator() {
 		return methodDeclList.iterator();
 	}
 
-	private List<MethodDecl> methodDeclList;
+	private List<OverloadedMethodDecl> methodDeclList;
 }

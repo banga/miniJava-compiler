@@ -34,6 +34,7 @@ import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
 import miniJava.AbstractSyntaxTrees.Operator;
+import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.QualifiedRef;
@@ -66,6 +67,7 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	public Void visitPackage(Package prog, Object arg) {
 		Machine.initCodeGen();
 
+		Machine.emit(Op.LOADL, 0);
 		Machine.emit(Op.LOADL, -1);
 		int mainCallAddress = Machine.nextInstrAddr();
 		Machine.emit(Op.CALL, Reg.CB, 0);
@@ -91,7 +93,7 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			fd.visit(this, null);
 		}
 
-		for (MethodDecl md : cd.methodDeclList) {
+		for (OverloadedMethodDecl md : cd.methodDeclList) {
 			md.visit(this, null);
 		}
 
@@ -100,6 +102,14 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 
 	@Override
 	public Void visitFieldDecl(FieldDecl fd, Object arg) {
+		return null;
+	}
+
+	@Override
+	public Void visitOverloadedMethodDecl(OverloadedMethodDecl omd, Object arg) {
+		for (MethodDecl md : omd)
+			md.visit(this, null);
+
 		return null;
 	}
 
@@ -224,8 +234,34 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			Machine.emit(Prim.puteol);
 			return null;
 		} else if (methodDecl == IdentificationTable.PRINTLN_STRING_DECL) {
-//			Machine.emit(Prim.putint);
-//			Machine.emit(Prim.puteol);
+			// String's address is on stack
+			Machine.emit(Op.LOADL, 0); // Load counter = 0 on stack
+
+			int testJumpIntrAddr = Machine.nextInstrAddr();
+			Machine.emit(Op.JUMP, 0, Reg.CB, 0);
+
+			// LOOP:
+			// Stack has counter, base address
+			int loopStartAddress = Machine.nextInstrAddr();
+			Machine.emit(Op.LOAD, Reg.ST, -2); // Copy string base address
+			Machine.emit(Op.LOAD, Reg.ST, -2); // Copy the counter value
+			Machine.emit(Prim.arrayref);
+			Machine.emit(Prim.put);
+			Machine.emit(Prim.succ); // Increase the counter
+
+			Machine.patch(testJumpIntrAddr, Machine.nextInstrAddr());
+
+			Machine.emit(Op.LOAD, Reg.ST, -1); // Copy the counter value
+			Machine.emit(Op.LOAD, Reg.ST, -3); // Copy array base address
+			Machine.emit(Prim.pred); // Get address of length field
+			Machine.emit(Op.LOADI); // Load length of string on stack
+			Machine.emit(Prim.lt);
+			Machine.emit(Op.JUMPIF, 1, Reg.CB, loopStartAddress);
+
+			Machine.emit(Op.POP, 2); // Pop the string base address and counter
+										// value
+			Machine.emit(Prim.puteol);
+
 			return null;
 		}
 
@@ -396,7 +432,7 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	public Void visitStringLiteral(StringLiteral str, Object arg) {
 		Machine.emit(Op.LOADL, str.spelling.length());
 		Machine.emit(Prim.newarr);
-		for(int i = 0; i < str.spelling.length(); i++) {
+		for (int i = 0; i < str.spelling.length(); i++) {
 			Machine.emit(Op.LOAD, Reg.ST, -1); // Copy array base address
 			Machine.emit(Op.LOADL, i);
 			Machine.emit(Op.LOADL, str.spelling.charAt(i));
@@ -498,11 +534,11 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	@Override
 	public Void visitDeRef(DeRef ref, Object arg) {
 		ref.classReference.visit(this, FetchType.VALUE);
-		
+
 		// Special case for array.length
-		Declaration memberDecl  = ref.memberReference.getDeclaration();
-		if(memberDecl == ArrayType.LENGTH_DECL) {
-			if((FetchType) arg != FetchType.VALUE) {
+		Declaration memberDecl = ref.memberReference.getDeclaration();
+		if (memberDecl == ArrayType.LENGTH_DECL) {
+			if ((FetchType) arg != FetchType.VALUE) {
 				Utilities.reportError("Cannot modify the length field of an array", ref.memberReference.posn);
 				return null;
 			}

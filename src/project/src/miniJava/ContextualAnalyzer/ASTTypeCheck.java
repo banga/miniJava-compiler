@@ -1,6 +1,8 @@
 package miniJava.ContextualAnalyzer;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.AssignStmt;
@@ -32,6 +34,7 @@ import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
 import miniJava.AbstractSyntaxTrees.Operator;
+import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.QualifiedRef;
@@ -66,16 +69,18 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		// The only static method allowed is
 		// public static void main(String[])
 		for (ClassDecl cd : prog.classDeclList) {
-			for (MethodDecl md : cd.methodDeclList) {
-				if (md.isStatic) {
-					if (mainMethod == null && md.type.equals(BaseType.VOID_TYPE) && !md.isPrivate
-							&& md.id.spelling.equals("main") && md.parameterDeclList.size() == 1) {
-						ParameterDecl param = md.parameterDeclList.get(0);
-						if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
-							mainMethod = md;
+			for (OverloadedMethodDecl omd : cd.methodDeclList) {
+				for (MethodDecl md : omd) {
+					if (md.isStatic) {
+						if (mainMethod == null && md.type.equals(BaseType.VOID_TYPE) && !md.isPrivate
+								&& md.id.spelling.equals("main") && md.parameterDeclList.size() == 1) {
+							ParameterDecl param = md.parameterDeclList.get(0);
+							if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
+								mainMethod = md;
+							}
+						} else {
+							Utilities.reportError(md.id + " is not allowed to be a static method", md.posn);
 						}
-					} else {
-						Utilities.reportError(md.id + " is not allowed to be a static method", md.posn);
 					}
 				}
 			}
@@ -97,13 +102,11 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitClassDecl(ClassDecl cd, Type type) {
-		Iterator<FieldDecl> itf = cd.fieldDeclList.iterator();
-		while (itf.hasNext())
-			itf.next().visit(this, null);
+		for (FieldDecl fd : cd.fieldDeclList)
+			fd.visit(this, null);
 
-		Iterator<MethodDecl> itm = cd.methodDeclList.iterator();
-		while (itm.hasNext())
-			itm.next().visit(this, null);
+		for (OverloadedMethodDecl omd : cd.methodDeclList)
+			omd.visit(this, null);
 
 		return null;
 	}
@@ -113,15 +116,41 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		return null;
 	}
 
+	private void checkDuplicateMethods(OverloadedMethodDecl omd) {
+		// Check for duplicates by creating a temporary overloaded method and
+		// asking for methods matching with each new method being added
+		OverloadedMethodDecl temp = new OverloadedMethodDecl(omd);
+		for (MethodDecl md : omd) {
+			List<Type> argTypes = new ArrayList<Type>();
+			for (ParameterDecl pd : md.parameterDeclList)
+				argTypes.add(pd.type);
+
+			MethodDecl otherMethod = temp.getMatchingMethodDecl(argTypes);
+			if (otherMethod != null) {
+				Utilities.reportError("Duplicate method " + md.id + " at " + otherMethod.posn, md.posn);
+			}
+
+			temp.add(md);
+		}
+	}
+
+	@Override
+	public Type visitOverloadedMethodDecl(OverloadedMethodDecl omd, Type arg) {
+		checkDuplicateMethods(omd);
+
+		for (MethodDecl md : omd)
+			md.visit(this, null);
+
+		return null;
+	}
+
 	@Override
 	public Type visitMethodDecl(MethodDecl md, Type type) {
-		Iterator<ParameterDecl> itp = md.parameterDeclList.iterator();
-		while (itp.hasNext())
-			itp.next().visit(this, null);
+		for (ParameterDecl pd : md.parameterDeclList)
+			pd.visit(this, null);
 
-		Iterator<Statement> its = md.statementList.iterator();
-		while (its.hasNext())
-			its.next().visit(this, null);
+		for (Statement s : md.statementList)
+			s.visit(this, null);
 
 		Type returnType = (md.returnExp == null) ? BaseType.VOID_TYPE : md.returnExp.visit(this, null);
 
@@ -305,12 +334,23 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	private Type validateMethodReference(Reference methodRef, ExprList argList) {
 		Declaration decl = methodRef.getDeclaration();
 
-		if (!(decl instanceof MethodDecl)) {
+		if (!(decl instanceof OverloadedMethodDecl)) {
 			Utilities.reportError("Method " + methodRef + " is undefined", methodRef.posn);
 			return new ErrorType(methodRef.posn);
 		}
 
-		MethodDecl methodDecl = (MethodDecl) decl;
+		List<Type> argTypes = new ArrayList<Type>();
+		for (Expression e : argList) {
+			argTypes.add(e.visit(this, null));
+		}
+
+		MethodDecl methodDecl = ((OverloadedMethodDecl) decl).getMatchingMethodDecl(argTypes);
+
+		if (methodDecl == null) {
+			Utilities.reportError("The method " + decl.id.spelling + " is not applicable to the arguments provided",
+					methodRef.posn);
+			return new ErrorType(methodRef.posn);
+		}
 
 		if (methodDecl.isStatic) {
 			// Static methods cannot be invoked
@@ -318,19 +358,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			return new ErrorType(methodRef.posn);
 		}
 
-		if (methodDecl.parameterDeclList.size() != argList.size()) {
-			Utilities.reportError("Method " + methodRef + " requires " + methodDecl.parameterDeclList.size()
-					+ " parameters", methodRef.posn);
-			return new ErrorType(methodRef.posn);
-		}
-
-		Iterator<ParameterDecl> it = methodDecl.parameterDeclList.iterator();
-		for (Expression e : argList) {
-			Type expType = e.visit(this, null);
-			ParameterDecl paramDecl = it.next();
-			if (!Utilities.validateTypeEquivalence(paramDecl.type, expType, e.posn))
-				return new ErrorType(e.posn);
-		}
+		methodRef.setDeclaration(methodDecl);
 
 		return Utilities.handleUnsupportedType(methodDecl.type, table);
 	}
@@ -417,8 +445,8 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	@Override
 	public Type visitStringLiteral(StringLiteral str, Type arg) {
 		return IdentificationTable.STRING_DECL.type;
-	}	
-	
+	}
+
 	@Override
 	public Type visitThisRef(ThisRef ref, Type arg) {
 		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);

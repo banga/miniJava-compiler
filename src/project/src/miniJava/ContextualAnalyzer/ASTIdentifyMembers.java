@@ -1,7 +1,5 @@
 package miniJava.ContextualAnalyzer;
 
-import java.util.Iterator;
-
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.AssignStmt;
@@ -26,11 +24,13 @@ import miniJava.AbstractSyntaxTrees.IndexedRef;
 import miniJava.AbstractSyntaxTrees.IntLiteral;
 import miniJava.AbstractSyntaxTrees.LiteralExpr;
 import miniJava.AbstractSyntaxTrees.LocalRef;
+import miniJava.AbstractSyntaxTrees.MemberDecl;
 import miniJava.AbstractSyntaxTrees.MemberRef;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
 import miniJava.AbstractSyntaxTrees.Operator;
+import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.QualifiedRef;
@@ -81,21 +81,23 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	@Override
 	public Void visitClassDecl(ClassDecl cd, IdentificationTable table) {
 		cd.id.declaration = cd;
+		currentClass = cd;
 
 		table.openScope();
 
-		for (FieldDecl fd : cd.fieldDeclList) {
+		for (FieldDecl fd : cd.fieldDeclList)
 			fd.visit(this, table);
-		}
+
+		for (OverloadedMethodDecl omd : cd.methodDeclList)
+			Utilities.addDeclaration(table, omd);
 
 		// Types must be visited only after declarations have been added
-		for (FieldDecl fd : cd.fieldDeclList) {
+		for (FieldDecl fd : cd.fieldDeclList)
 			fd.type.visit(this, table);
-		}
 
-		Iterator<MethodDecl> itm = cd.methodDeclList.iterator();
-		while (itm.hasNext())
-			itm.next().visit(this, table);
+		// Finally visit the methods
+		for (OverloadedMethodDecl omd : cd.methodDeclList)
+			omd.visit(this, table);
 
 		return null;
 	}
@@ -117,11 +119,19 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	}
 
 	@Override
+	public Void visitOverloadedMethodDecl(OverloadedMethodDecl omd, IdentificationTable table) {
+		for (MethodDecl md : omd)
+			md.visit(this, table);
+
+		return null;
+	}
+
+	@Override
 	public Void visitMethodDecl(MethodDecl md, IdentificationTable table) {
 		md.id.declaration = md;
+		currentMethod = md;
 
 		md.type.visit(this, table);
-		Utilities.addDeclaration(table, md);
 
 		// Parameter scope
 		table.openScope();
@@ -138,9 +148,11 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 		// Scope of local variables
 		table.openScope();
 
-		for (Statement st : md.statementList) {
+		for (Statement st : md.statementList)
 			st.visit(this, table);
-		}
+
+		if (md.returnExp != null)
+			md.returnExp.visit(this, table);
 
 		table.closeScope();
 
@@ -214,9 +226,8 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 		// nested scope
 		table.openScope();
 
-		Iterator<Statement> it = stmt.sl.iterator();
-		while (it.hasNext())
-			it.next().visit(this, table);
+		for (Statement s : stmt.sl)
+			s.visit(this, table);
 
 		table.closeScope();
 
@@ -230,6 +241,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 					stmt.varDecl.posn);
 
 		stmt.varDecl.type.visit(this, table);
+		stmt.varDecl.visit(this, table);
 
 		// Add the declaration of this identifier at this point
 		// Catches the A A = d; case
@@ -259,6 +271,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitIfStmt(IfStmt stmt, IdentificationTable table) {
+		stmt.cond.visit(this, table);
 		if (stmt.thenStmt instanceof VarDeclStmt) {
 			Utilities.reportError("Variable declaration cannot be the only statement in a conditional statement",
 					stmt.thenStmt.posn);
@@ -332,6 +345,13 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	}
 
 	@Override
+	public Void visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
+		expr.classtype.visit(this, table);
+
+		return null;
+	}
+
+	@Override
 	public Void visitNewArrayExpr(NewArrayExpr expr, IdentificationTable table) {
 		expr.eltType.visit(this, table);
 		expr.sizeExpr.visit(this, table);
@@ -340,22 +360,103 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	}
 
 	@Override
-	public Void visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
-		expr.classtype.visit(this, table);
+	public Void visitQualifiedRef(QualifiedRef qRef, IdentificationTable table) {
+		Identifier id;
+		boolean isThisRef = false;
 
-		return null;
-	}
+		if (qRef.thisRelative) {
+			if (currentMethod.isStatic) {
+				Utilities.reportError("Cannot use this in static context", qRef.posn);
+				return null;
+			}
 
-	@Override
-	public Void visitQualifiedRef(QualifiedRef ref, IdentificationTable table) {
-		if (!ref.thisRelative && ref.qualifierList.size() > 0) {
-			Identifier id = ref.qualifierList.get(0);
-			Declaration decl = table.get(id.spelling);
+			if (qRef.qualifierList.size() == 0) {
+				// Just the 'this' identifier, returning here because no more
+				// identification is required and it breaks the last check otherwise
+				return null;
+			}
+
+			isThisRef = true;
+			id = new Identifier("this", qRef.posn);
+			id.declaration = currentClass;
+		} else {
+			id = qRef.qualifierList.get(0);
+
+			int scope = table.linkDeclaration(id);
+
+			if (scope == IdentificationTable.INVALID_SCOPE) {
+				Utilities.reportError("Undeclared identifier '" + id + "'", id.posn);
+				return null;
+			}
+
+			// Non-static members from static method
+			if (scope == IdentificationTable.MEMBER_SCOPE && currentMethod.isStatic
+					&& !((MemberDecl) id.declaration).isStatic) {
+				Utilities.reportError("Non-static member " + id + " cannot be accessed from static method "
+						+ currentMethod.id, id.posn);
+				return null;
+			}
 
 			// Handle int x = x + 2; case
-			if (decl instanceof VarDecl && !((VarDecl) decl).initialized) {
+			if (id.declaration instanceof VarDecl && !((VarDecl) id.declaration).initialized) {
 				Utilities.reportError("Local variable " + id + " may not have been initialized", id.posn);
 			}
+		}
+
+		// Handle subsequent Identifiers in the QualifiedRef list
+		for (int i = (isThisRef) ? 0 : 1; i < qRef.qualifierList.size(); i++) {
+			boolean currentIdentifierIsThis = (i == 0);
+			// Identifiers indexed > 0 in the QualifiedRef list are always
+			// Members of Class. Get the parent to which the
+			// current Identifier is a member of.
+			Identifier parentID = id;
+			// boolean isParentClassName = parentID.declaration instanceof
+			// ClassDecl;
+
+			ClassDecl parentClassDecl;
+
+			if (parentID.declaration.type instanceof ClassType) {
+				ClassType parentClassType = (ClassType) parentID.declaration.type;
+				parentClassType.visit(this, table);
+				if (!(parentClassType.declaration instanceof ClassDecl)) {
+					Utilities.reportError(parentClassType.spelling + " is not a valid type", parentID.posn);
+					return null;
+				}
+				parentClassDecl = (ClassDecl) parentClassType.declaration;
+			} else if (parentID.declaration.type instanceof ArrayType) {
+				ArrayType parentArrayType = (ArrayType) parentID.declaration.type;
+				parentArrayType.visit(this, table);
+				parentClassDecl = parentArrayType.declaration;
+			} else {
+				Utilities.reportError(parentID + " is not an instance or a class", parentID.posn);
+				return null;
+			}
+
+			// Can we access private members?
+			boolean hasPrivateAccess = (parentClassDecl == currentClass);
+			// Are we accessing static members?
+			boolean isStaticReference = (parentID.declaration instanceof ClassDecl) && !currentIdentifierIsThis;
+
+			id = qRef.qualifierList.get(i);
+			id.declaration = parentClassDecl.getFieldDeclaration(id, hasPrivateAccess, isStaticReference);
+
+			if (id.declaration == null) {
+				if (i == qRef.qualifierList.size() - 1) {
+					// Could be a method if this is the last qualifier
+					id.declaration = parentClassDecl.getMethodDeclaration(id, hasPrivateAccess, isStaticReference);
+					if (id.declaration == null) {
+						Utilities.reportError(id + " is not a member of " + parentClassDecl.id, id.posn);
+						return null;
+					}
+				} else {
+					Utilities.reportError(id + " is not a field of " + parentClassDecl.id, id.posn);
+					return null;
+				}
+			}
+		}
+
+		if (id.declaration instanceof ClassDecl) {
+			Utilities.reportError(id + " cannot be resolved to a variable", id.posn);
 		}
 
 		return null;
@@ -363,6 +464,9 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 	@Override
 	public Void visitIndexedRef(IndexedRef ref, IdentificationTable table) {
+		ref.ref.visit(this, table);
+		ref.indexExpr.visit(this, table);
+
 		return null;
 	}
 
@@ -420,4 +524,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	public Void visitBadRef(BadRef ref, IdentificationTable table) {
 		return null;
 	}
+
+	public ClassDecl currentClass;
+	public MethodDecl currentMethod;
 }

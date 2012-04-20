@@ -5,7 +5,6 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-
 /**
  * Display AST in text form
  * 
@@ -58,16 +57,25 @@ public class ASTDisplay implements Visitor<String, Object> {
 		for (FieldDecl f : clas.fieldDeclList)
 			f.visit(this, pfx);
 		show(arg, "  MethodDeclList [" + clas.methodDeclList.size() + "]");
-		for (MethodDecl m : clas.methodDeclList)
+		for (OverloadedMethodDecl m : clas.methodDeclList)
 			m.visit(this, pfx);
 		return null;
 	}
 
 	public Object visitFieldDecl(FieldDecl f, String arg) {
-		show(arg, "(" + (f.isPrivate ? "private" : "public")
-				+ (f.isStatic ? " static) " : ") ") + f.toString());
+		show(arg, "(" + (f.isPrivate ? "private" : "public") + (f.isStatic ? " static) " : ") ") + f.toString());
 		f.type.visit(this, indent(arg));
 		f.id.visit(this, indent(arg));
+		return null;
+	}
+
+	@Override
+	public Object visitOverloadedMethodDecl(OverloadedMethodDecl m, String arg) {
+		show(arg, "OverloadedMethodDecl \"" + m + "\"");
+
+		for (MethodDecl md : m)
+			md.visit(this, indent(arg));
+
 		return null;
 	}
 
@@ -307,7 +315,7 @@ public class ASTDisplay implements Visitor<String, Object> {
 	 * @return
 	 */
 	public Object visitMemberRef(MemberRef mr, String arg) {
-		if(mr.identifier.declaration instanceof FieldDecl)
+		if (mr.identifier.declaration instanceof FieldDecl)
 			show(arg, "MemberRef (Field) \"" + mr.identifier + "\"");
 		else
 			show(arg, "MemberRef (Method) \"" + mr.identifier + "\"");

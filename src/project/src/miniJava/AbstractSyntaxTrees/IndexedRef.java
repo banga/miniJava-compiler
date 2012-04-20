@@ -24,6 +24,12 @@ public class IndexedRef extends Reference {
 		return ref.getDeclaration();
 	}
 
+	@Override
+	public void setDeclaration(Declaration decl) {
+		//ref.setDeclaration(decl);
+		throw new RuntimeException("IndexedRef's setDeclaration should never be called!");
+	}
+
 	public Reference ref;
 	public Expression indexExpr;
 }

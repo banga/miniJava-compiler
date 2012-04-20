@@ -33,4 +33,9 @@ public class DeRef extends Reference {
 	public Declaration getDeclaration() {
 		return memberReference.getDeclaration();
 	}
+
+	@Override
+	public void setDeclaration(Declaration decl) {
+		memberReference.setDeclaration(decl);
+	}
 }

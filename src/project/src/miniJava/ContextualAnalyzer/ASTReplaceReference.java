@@ -1,7 +1,5 @@
 package miniJava.ContextualAnalyzer;
 
-import java.util.Iterator;
-
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.AssignStmt;
@@ -24,6 +22,7 @@ import miniJava.AbstractSyntaxTrees.IfStmt;
 import miniJava.AbstractSyntaxTrees.IndexedRef;
 import miniJava.AbstractSyntaxTrees.IntLiteral;
 import miniJava.AbstractSyntaxTrees.LiteralExpr;
+import miniJava.AbstractSyntaxTrees.LocalDecl;
 import miniJava.AbstractSyntaxTrees.LocalRef;
 import miniJava.AbstractSyntaxTrees.MemberDecl;
 import miniJava.AbstractSyntaxTrees.MemberRef;
@@ -31,6 +30,7 @@ import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
 import miniJava.AbstractSyntaxTrees.Operator;
+import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.QualifiedRef;
@@ -51,10 +51,6 @@ import miniJava.AbstractSyntaxTrees.WhileStmt;
  * Replaces QualifiedReference with a proper tree of references
  */
 public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
-
-	public ClassDecl currentClass = null;
-	public MethodDecl currentMethod = null;
-
 	@Override
 	public AST visitPackage(Package prog, IdentificationTable table) {
 		for (ClassDecl cd : prog.classDeclList)
@@ -65,7 +61,6 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	@Override
 	public AST visitClassDecl(ClassDecl cd, IdentificationTable table) {
 		cd.id.declaration = cd;
-
 		currentClass = cd;
 
 		// Populate the identification table with the members of this class
@@ -75,7 +70,7 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 		for (FieldDecl fd : cd.fieldDeclList)
 			fd.visit(this, table);
 
-		for (MethodDecl md : cd.methodDeclList)
+		for (OverloadedMethodDecl md : cd.methodDeclList)
 			md.visit(this, table);
 
 		table.closeScope();
@@ -89,9 +84,15 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	}
 
 	@Override
-	public AST visitMethodDecl(MethodDecl md, IdentificationTable table) {
-		currentMethod = md;
+	public AST visitOverloadedMethodDecl(OverloadedMethodDecl omd, IdentificationTable table) {
+		for (MethodDecl md : omd)
+			md.visit(this, table);
 
+		return null;
+	}
+
+	@Override
+	public AST visitMethodDecl(MethodDecl md, IdentificationTable table) {
 		// Parameter scope
 		table.openScope();
 
@@ -161,11 +162,11 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 		// nested scope
 		table.openScope();
 
-		Iterator<Statement> it = stmt.sl.iterator();
-		while (it.hasNext())
-			it.next().visit(this, table);
+		for (Statement s : stmt.sl)
+			s.visit(this, table);
 
 		table.closeScope();
+
 		return null;
 	}
 
@@ -186,30 +187,18 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	@Override
 	public AST visitCallStmt(CallStmt stmt, IdentificationTable table) {
 		stmt.methodRef = (Reference) stmt.methodRef.visit(this, table);
-		Iterator<Expression> itf = stmt.argList.iterator();
-		while (itf.hasNext())
-			itf.next().visit(this, table);
+		for (Expression e : stmt.argList)
+			e.visit(this, table);
+
 		return null;
 	}
 
 	@Override
 	public AST visitIfStmt(IfStmt stmt, IdentificationTable table) {
 		stmt.cond.visit(this, table);
-		if (stmt.thenStmt instanceof VarDeclStmt) {
-			Utilities.reportError("Variable declaration cannot be the only statement in a conditional statement at ",
-					stmt.thenStmt.posn);
-		} else {
-			stmt.thenStmt.visit(this, table);
-		}
-
-		if (stmt.elseStmt != null) {
-			if (stmt.elseStmt instanceof VarDeclStmt) {
-				Utilities.reportError("Variable declaration cannot be the only statement in a conditional statement",
-						stmt.elseStmt.posn);
-			} else {
-				stmt.elseStmt.visit(this, table);
-			}
-		}
+		stmt.thenStmt.visit(this, table);
+		if (stmt.elseStmt != null)
+			stmt.elseStmt.visit(this, table);
 
 		return null;
 	}
@@ -217,12 +206,7 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	@Override
 	public AST visitWhileStmt(WhileStmt stmt, IdentificationTable table) {
 		stmt.cond.visit(this, table);
-		if (stmt.body instanceof VarDeclStmt) {
-			Utilities.reportError("Variable declaration cannot be the only statement in a while statement",
-					stmt.body.posn);
-		} else {
-			stmt.body.visit(this, table);
-		}
+		stmt.body.visit(this, table);
 
 		return null;
 	}
@@ -231,6 +215,7 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	public AST visitUnaryExpr(UnaryExpr expr, IdentificationTable table) {
 		expr.operator.visit(this, table);
 		expr.expr.visit(this, table);
+
 		return null;
 	}
 
@@ -239,12 +224,14 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 		expr.operator.visit(this, table);
 		expr.left.visit(this, table);
 		expr.right.visit(this, table);
+
 		return null;
 	}
 
 	@Override
 	public AST visitRefExpr(RefExpr expr, IdentificationTable table) {
 		expr.ref = (Reference) expr.ref.visit(this, table);
+
 		return null;
 	}
 
@@ -253,6 +240,7 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 		expr.functionRef = (Reference) expr.functionRef.visit(this, table);
 		for (Expression e : expr.argList)
 			e.visit(this, table);
+
 		return null;
 	}
 
@@ -265,6 +253,7 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	@Override
 	public AST visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
 		expr.classtype.visit(this, table);
+
 		return null;
 	}
 
@@ -272,6 +261,7 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	public AST visitNewArrayExpr(NewArrayExpr expr, IdentificationTable table) {
 		expr.eltType.visit(this, table);
 		expr.sizeExpr.visit(this, table);
+
 		return null;
 	}
 
@@ -284,31 +274,14 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 		if (qRef.thisRelative) {
 			newRef = new ThisRef(currentClass.id, currentClass.id.posn);
 			isThisRef = true;
-			if (currentMethod.isStatic) {
-				Utilities.reportError("Cannot use this in static context", qRef.posn);
-				return new BadRef(new Identifier("this", qRef.posn), qRef.posn);
-			}
 		} else {
 			id = qRef.qualifierList.get(0);
 
-			int scope = table.linkDeclaration(id);
-
-			if (scope == IdentificationTable.PREDEFINED_SCOPE) {
+			if (id.declaration instanceof ClassDecl) {
 				newRef = new ClassRef(id, id.posn);
-			} else if (scope == IdentificationTable.CLASS_SCOPE) {
-				newRef = new ClassRef(id, id.posn);
-			} else if (scope == IdentificationTable.MEMBER_SCOPE) {
-				if (currentMethod.isStatic) {
-					MemberDecl md = (MemberDecl) id.declaration;
-					if (!md.isStatic) {
-						Utilities.reportError("Non-static member " + id + " cannot be accessed from static method "
-								+ currentMethod.id, id.posn);
-						return new BadRef(id, id.posn);
-					}
-				}
-
+			} else if (id.declaration instanceof MemberDecl) {
 				newRef = new MemberRef(id, id.posn);
-			} else if (scope == IdentificationTable.LOCAL_SCOPE || scope == IdentificationTable.PARAMETER_SCOPE) {
+			} else if (id.declaration instanceof LocalDecl || id.declaration instanceof ParameterDecl) {
 				newRef = new LocalRef(id, id.posn);
 			} else {
 				Utilities.reportError("Undeclared identifier '" + id + "'", id.posn);
@@ -318,84 +291,14 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 
 		// Handle subsequent Identifiers in the QualifiedRef list
 		for (int i = (isThisRef) ? 0 : 1; i < qRef.qualifierList.size(); i++) {
-			boolean currentIdentifierIsThis = (i == 0);
-			// Identifiers indexed > 0 in the QualifiedRef list are always
-			// Members of Class. Get the parent to which the
-			// current Identifier is a member of.
-			Identifier parentID = (currentIdentifierIsThis) ? currentClass.id : qRef.qualifierList.get(i - 1);
-			boolean isParentClassName = parentID.declaration instanceof ClassDecl;
-
-			ClassDecl parentClassDecl;
-
-			if (parentID.declaration.type instanceof ClassType) {
-				ClassType parentClassType = (ClassType) parentID.declaration.type;
-				try {
-					parentClassType.declaration = (ClassDecl) table.get(parentClassType.spelling);
-
-					if (parentClassType.declaration == null) {
-						Utilities.reportError(parentClassType.spelling + " is not a valid type", parentID.posn);
-						return new BadRef(parentID, parentID.posn);
-					}
-				} catch (ClassCastException e) {
-					Utilities.reportError(parentClassType.spelling + " is not a valid type", parentID.posn);
-					return new BadRef(parentID, parentID.posn);
-				}
-				parentClassDecl = parentClassType.declaration;
-			} else if (parentID.declaration.type instanceof ArrayType) {
-				ArrayType parentArrayType = (ArrayType) parentID.declaration.type;
-				parentClassDecl = parentArrayType.declaration;
-			} else {
-				Utilities.reportError(parentID + " is not an instance or a class", parentID.posn);
-				return new BadRef(parentID, parentID.posn);
-			}
-
 			id = qRef.qualifierList.get(i);
-			id.declaration = parentClassDecl.getFieldDeclaration(id.spelling);
 
+			// Identification failed on id, so it's a bad reference
 			if (id.declaration == null) {
-				if (i == qRef.qualifierList.size() - 1) {
-					// Could be a method if this is the last qualifier
-					id.declaration = parentClassDecl.getMethodDeclaration(id.spelling);
-					if (id.declaration == null) {
-						Utilities.reportError(id + " is not a member of " + parentClassDecl.id, id.posn);
-						return new BadRef(id, id.posn);
-					}
-				} else {
-					Utilities.reportError(id + " is not a field of " + parentClassDecl.id, id.posn);
-					return new BadRef(id, id.posn);
-				}
-			}
-
-			MemberDecl memberDecl = (MemberDecl) id.declaration;
-
-			// Cannot use the member of a class in "Class.Member" form if it is
-			// not static
-			if (isParentClassName && !currentIdentifierIsThis && !memberDecl.isStatic) {
-				Utilities.reportError(id + " is not a static member of " + parentClassDecl.id, id.posn);
-				return new BadRef(id, id.posn);
-			}
-
-			// Cannot use non-public members outside the class
-			if (memberDecl.isPrivate && parentClassDecl != currentClass) {
-				Utilities.reportError(id + " is not a public member of " + parentClassDecl.id, id.posn);
-				return new BadRef(id, id.posn);
-			}
-
-			// Static members can only be referenced through their fully
-			// qualified names, starting with class name
-			if (memberDecl.isStatic && !isParentClassName) {
-				Utilities.reportError("Static member " + id + " can only be referenced through its parent class name",
-						id.posn);
 				return new BadRef(id, id.posn);
 			}
 
 			newRef = new DeRef(newRef, new MemberRef(id, id.posn), qRef.posn);
-		}
-
-		// We should not allow A x = A;
-		if (newRef instanceof ClassRef) {
-			Utilities.reportError(((ClassRef) newRef).identifier + " cannot be resolved to a variable", newRef.posn);
-			newRef = new BadRef(((ClassRef) newRef).identifier, newRef.posn);
 		}
 
 		return newRef;
@@ -405,6 +308,7 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	public AST visitIndexedRef(IndexedRef ref, IdentificationTable table) {
 		ref.ref = (Reference) ref.ref.visit(this, table);
 		ref.indexExpr.visit(this, table);
+
 		return ref;
 	}
 
@@ -462,4 +366,6 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	public AST visitBadRef(BadRef ref, IdentificationTable arg) {
 		return null;
 	}
+
+	public ClassDecl currentClass;
 }

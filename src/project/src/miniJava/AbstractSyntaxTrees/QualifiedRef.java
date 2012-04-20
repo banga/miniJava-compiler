@@ -34,4 +34,9 @@ public class QualifiedRef extends Reference {
 		// throw new RuntimeException("QualifiedRef's getDeclaration should never be called!");
 		return null;
 	}
+
+	@Override
+	public void setDeclaration(Declaration decl) {
+		// throw new RuntimeException("QualifiedRef's setDeclaration should never be called!");
+	}
 }

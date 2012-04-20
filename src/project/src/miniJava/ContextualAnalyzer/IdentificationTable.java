@@ -192,7 +192,7 @@ public class IdentificationTable {
 				return i;
 			}
 		}
-		return -1;
+		return INVALID_SCOPE;
 	}
 
 	/**
