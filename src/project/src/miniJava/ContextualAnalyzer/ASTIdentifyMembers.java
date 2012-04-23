@@ -96,8 +96,11 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 			fd.type.visit(this, table);
 
 		// Finally visit the methods
-		for (OverloadedMethodDecl omd : cd.methodDeclList)
-			omd.visit(this, table);
+		for (OverloadedMethodDecl methodDecl : cd.methodDeclList)
+			methodDecl.visit(this, table);
+
+		// Also visit the constructors
+		cd.constructorDecl.visit(this, table);
 
 		return null;
 	}
@@ -348,6 +351,9 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	public Void visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
 		expr.classtype.visit(this, table);
 
+		for (Expression e : expr.argList)
+			e.visit(this, table);
+
 		return null;
 	}
 
@@ -372,7 +378,8 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 			if (qRef.qualifierList.size() == 0) {
 				// Just the 'this' identifier, returning here because no more
-				// identification is required and it breaks the last check otherwise
+				// identification is required and it breaks the last check
+				// otherwise
 				return null;
 			}
 

@@ -31,6 +31,7 @@ import miniJava.AbstractSyntaxTrees.MethodDeclList;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
 import miniJava.AbstractSyntaxTrees.Operator;
+import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.ParameterDeclList;
 import miniJava.AbstractSyntaxTrees.QualifiedRef;
@@ -119,7 +120,7 @@ public class Parser {
 	 * <pre>
 	 * ClassDeclaration ::= 
 	 *     <b>class</b> <i>id</i> <b>{</b>
-	 *         (FieldDeclaration | MethodDeclaration)*
+	 *         (FieldDeclaration | MethodDeclaration | ConstructorDeclaration)*
 	 *     <b>}</b>
 	 * 
 	 * FieldDeclaration ::= Declarators <i>id</i><b>;</b>
@@ -127,6 +128,11 @@ public class Parser {
 	 * MethodDeclaration ::= 
 	 *     Declarators <i>id</i><b>(</b>ParameterList?<b>) {</b>
 	 *         Statement* (<b>return</b> Expression<b>;</b>)?
+	 *     <b>}</b>
+	 * 
+	 * ConstructorDeclaration ::=
+	 *     (public | private)? <i>id</i><b>(</b>ParameterList?<b>) {</b>
+	 *         Statement*
 	 *     <b>}</b>
 	 * 
 	 * </pre>
@@ -141,45 +147,79 @@ public class Parser {
 		expect(TokenType.LCURL);
 		FieldDeclList fieldList = new FieldDeclList();
 		MethodDeclList methodList = new MethodDeclList();
+		OverloadedMethodDecl constructorDecls = null;
 
 		while (currentToken.type != TokenType.RCURL) {
 			// Left factorize the Declarators and id
 			MemberDecl memberDecl = parseDeclarators();
-			expect(TokenType.IDENTIFIER);
 
-			if (currentToken.type == TokenType.LPAREN) {
-				// MethodDeclaration
-				consume();
-				ParameterDeclList pList = new ParameterDeclList();
-				if (currentToken.type != TokenType.RPAREN)
-					pList = parseParameterList();
-				expect(TokenType.RPAREN);
+			// Parse a constructor
+			if (currentToken.type == TokenType.LPAREN && memberDecl.type.spelling.equals(classId.spelling)) {
+				if (memberDecl.isStatic)
+					throw new SyntaxErrorException("Invalid modifiers on constructor " + currentToken);
 
-				// Method body
-				expect(TokenType.LCURL);
-				StatementList methodStmtList = new StatementList();
-				Expression returnExpr = null;
-				while (currentToken.type != TokenType.RCURL) {
-					if (currentToken.type == TokenType.RETURN) {
-						consume();
-						returnExpr = parseExpression();
-						expect(TokenType.SEMICOLON);
-						break;
-					} else {
-						methodStmtList.add(parseStatement());
-					}
-				}
-				expect(TokenType.RCURL);
-				MethodDecl methodDecl = new MethodDecl(memberDecl, pList, methodStmtList, returnExpr, memberDecl.posn);
-				methodList.add(methodDecl);
+				memberDecl = new FieldDecl(memberDecl.isPrivate, false, BaseType.VOID_TYPE, new Identifier(
+						memberDecl.type.spelling, memberDecl.type.posn), memberDecl.posn);
+
+				MethodDecl constructor = parseMethodDeclaration(memberDecl, true);
+
+				if (constructorDecls == null)
+					constructorDecls = new OverloadedMethodDecl(memberDecl);
+				constructorDecls.add(constructor);
 			} else {
-				FieldDecl fieldDecl = new FieldDecl(memberDecl, memberDecl.posn);
-				fieldList.add(fieldDecl);
-				expect(TokenType.SEMICOLON);
+				expect(TokenType.IDENTIFIER);
+
+				// Trying to name a regular method with class name
+				if (currentToken.spelling.equals(classId.spelling))
+					throw new SyntaxErrorException("Invalid modifiers on constructor " + currentToken);
+
+				if (currentToken.type == TokenType.LPAREN) {
+					methodList.add(parseMethodDeclaration(memberDecl, false));
+				} else {
+					FieldDecl fieldDecl = new FieldDecl(memberDecl, memberDecl.posn);
+					fieldList.add(fieldDecl);
+					expect(TokenType.SEMICOLON);
+				}
 			}
 		}
 		expect(TokenType.RCURL);
-		return new ClassDecl(classId, fieldList, methodList, classPos);
+
+		return new ClassDecl(classId, fieldList, methodList, constructorDecls, classPos);
+	}
+
+	/**
+	 * Parses a method starting from left parentheses
+	 * 
+	 * @param memberDecl
+	 * @return
+	 * @throws SyntaxErrorException
+	 */
+	private MethodDecl parseMethodDeclaration(MemberDecl memberDecl, boolean isConstructor) throws SyntaxErrorException {
+		// MethodDeclaration
+		expect(TokenType.LPAREN);
+		ParameterDeclList pList = new ParameterDeclList();
+		if (currentToken.type != TokenType.RPAREN)
+			pList = parseParameterList();
+		expect(TokenType.RPAREN);
+
+		// Method body
+		expect(TokenType.LCURL);
+		StatementList methodStmtList = new StatementList();
+		Expression returnExpr = null;
+		while (currentToken.type != TokenType.RCURL) {
+			if (currentToken.type == TokenType.RETURN && !isConstructor) {
+				consume();
+				returnExpr = parseExpression();
+				expect(TokenType.SEMICOLON);
+				break;
+			} else {
+				methodStmtList.add(parseStatement());
+			}
+		}
+		expect(TokenType.RCURL);
+
+		MethodDecl methodDecl = new MethodDecl(memberDecl, pList, methodStmtList, returnExpr, memberDecl.posn);
+		return methodDecl;
 	}
 
 	/**
@@ -765,7 +805,7 @@ public class Parser {
 	 *       | <b>num</b> | <b>true</b> | <b>false</b>  | <b>string</b>    // LiteralExpr
 	 *       | Reference ( <b>[</b> Expression <b>]</b> )?   // RefExpr
 	 *       | Reference <b>(</b> ArgumentList? <b>)</b>     // CallExpr
-	 *       | <b>new</b> (id <b>( )</b> | <b>int [</b> Expression <b>]</b> | id <b>[</b> Expression <b>]</b> )  // NewObjectExpr, NewArrayExpr
+	 *       | <b>new</b> (id <b>( ArgumentList? )</b> | <b>int [</b> Expression <b>]</b> | id <b>[</b> Expression <b>]</b> )  // NewObjectExpr, NewArrayExpr
 	 * </pre>
 	 * 
 	 * @throws SyntaxErrorException
@@ -796,10 +836,14 @@ public class Parser {
 				consume();
 				switch (currentToken.type) {
 				case LPAREN:
-					// new id ( )
+					// new id ( ArgumentList? )
 					consume();
+					ExprList argList = new ExprList();
+					if (currentToken.type != TokenType.RPAREN) {
+						argList = parseArgumentList();
+					}
 					expect(TokenType.RPAREN);
-					expr = new NewObjectExpr((ClassType) newType, exprPos);
+					expr = new NewObjectExpr((ClassType) newType, argList, exprPos);
 					break;
 
 				case LSQUARE:

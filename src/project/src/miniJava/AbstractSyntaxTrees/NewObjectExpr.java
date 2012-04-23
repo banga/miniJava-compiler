@@ -8,9 +8,10 @@ package miniJava.AbstractSyntaxTrees;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class NewObjectExpr extends NewExpr {
-	public NewObjectExpr(ClassType ct, SourcePosition posn) {
+	public NewObjectExpr(ClassType ct, ExprList al, SourcePosition posn) {
 		super(posn);
 		classtype = ct;
+		argList = al;
 	}
 
 	public <A, R> R visit(Visitor<A, R> v, A o) {
@@ -18,4 +19,6 @@ public class NewObjectExpr extends NewExpr {
 	}
 
 	public ClassType classtype;
+	public ExprList argList;
+	public MethodDecl matchedConstructor;
 }

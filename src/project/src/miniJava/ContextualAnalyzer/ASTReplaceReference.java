@@ -73,6 +73,9 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 		for (OverloadedMethodDecl md : cd.methodDeclList)
 			md.visit(this, table);
 
+		// Also visit the constructors
+		cd.constructorDecl.visit(this, table);
+
 		table.closeScope();
 
 		return null;
@@ -253,6 +256,9 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 	@Override
 	public AST visitNewObjectExpr(NewObjectExpr expr, IdentificationTable table) {
 		expr.classtype.visit(this, table);
+
+		for (Expression e : expr.argList)
+			e.visit(this, table);
 
 		return null;
 	}

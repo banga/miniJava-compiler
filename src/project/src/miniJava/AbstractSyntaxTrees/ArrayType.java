@@ -44,7 +44,7 @@ public class ArrayType extends Type {
 	public ClassDecl declaration = ARRAY_DECL;
 
 	public static final ClassDecl ARRAY_DECL = new ClassDecl(new Identifier("Array", null), new FieldDeclList(),
-			new MethodDeclList(), null);
+			new MethodDeclList(), null, null);
 	public static final FieldDecl LENGTH_DECL = new FieldDecl(false, false, BaseType.INT_TYPE, null, null);
 	static {
 		// Create the length field for arrays:

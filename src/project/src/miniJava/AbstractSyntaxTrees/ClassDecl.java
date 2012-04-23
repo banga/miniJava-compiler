@@ -11,10 +11,11 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ClassDecl extends Declaration {
 
-	public ClassDecl(Identifier id, FieldDeclList fdl, MethodDeclList mdl, SourcePosition posn) {
+	public ClassDecl(Identifier id, FieldDeclList fdl, MethodDeclList mdl, OverloadedMethodDecl cdl, SourcePosition posn) {
 		super(id, new ClassType(id.spelling, id.posn), posn);
 		fieldDeclList = fdl;
 		methodDeclList = mdl;
+		constructorDecl = cdl;
 		((ClassType) type).declaration = this;
 
 		runtimeEntity.size = fdl.size();
@@ -22,6 +23,23 @@ public class ClassDecl extends Declaration {
 		for (FieldDecl fd : fdl) {
 			fd.runtimeEntity.displacement = fieldDisplacement++;
 		}
+
+		// Provide a default constructor if none has been provided
+		if (constructorDecl == null) {
+			FieldDecl fd = new FieldDecl(false, false, BaseType.VOID_TYPE, new Identifier(id.spelling, null), null);
+			constructorDecl = new OverloadedMethodDecl(fd);
+			MethodDecl defaultConstructor = new MethodDecl(fd, new ParameterDeclList(), new StatementList(), null, null);
+			constructorDecl.add(defaultConstructor);
+		}
+
+		// Set parent class for all methods
+		for (OverloadedMethodDecl omd : mdl)
+			for (MethodDecl md : omd)
+				md.parentClass = this;
+
+		// Set parent class for all constructors
+		for (MethodDecl md : constructorDecl)
+			md.parentClass = this;
 	}
 
 	public <A, R> R visit(Visitor<A, R> v, A o) {
@@ -106,5 +124,6 @@ public class ClassDecl extends Declaration {
 
 	public FieldDeclList fieldDeclList;
 	public MethodDeclList methodDeclList;
+	public OverloadedMethodDecl constructorDecl;
 	public ClassRuntimeEntity runtimeEntity = new ClassRuntimeEntity(0);
 }

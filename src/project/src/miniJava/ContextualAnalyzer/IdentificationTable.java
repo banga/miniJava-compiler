@@ -35,7 +35,7 @@ public class IdentificationTable {
 
 	// Needs to be public for testing main method
 	public static final ClassDecl STRING_DECL = new ClassDecl(new Identifier("String", null), new FieldDeclList(),
-			new MethodDeclList(), null);
+			new MethodDeclList(), null, null);
 
 	public static MethodDecl PRINTLN_INT_DECL, PRINTLN_STRING_DECL;
 
@@ -67,7 +67,7 @@ public class IdentificationTable {
 
 		// class _PrintStream
 		ClassDecl printStreamDecl = new ClassDecl(new Identifier(PRINTSTREAM, null), new FieldDeclList(),
-				printStreamMethods, null);
+				printStreamMethods, null, null);
 
 		try {
 			set(printStreamDecl);
@@ -85,7 +85,8 @@ public class IdentificationTable {
 		systemFields.add(out);
 
 		// class System;
-		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), systemFields, new MethodDeclList(), null);
+		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), systemFields, new MethodDeclList(), null,
+				null);
 
 		try {
 			set(systemDecl);

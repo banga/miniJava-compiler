@@ -102,11 +102,16 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitClassDecl(ClassDecl cd, Type type) {
+		currentClass = cd;
+
 		for (FieldDecl fd : cd.fieldDeclList)
 			fd.visit(this, null);
 
 		for (OverloadedMethodDecl omd : cd.methodDeclList)
 			omd.visit(this, null);
+
+		// Also visit the constructors
+		cd.constructorDecl.visit(this, null);
 
 		return null;
 	}
@@ -358,6 +363,13 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			return new ErrorType(methodRef.posn);
 		}
 
+		if (methodDecl.isPrivate && currentClass != methodDecl.parentClass) {
+			// Static methods cannot be invoked
+			Utilities.reportError("Private method " + methodDecl.id.spelling + " is not accessible here",
+					methodRef.posn);
+			return new ErrorType(methodRef.posn);
+		}
+
 		methodRef.setDeclaration(methodDecl);
 
 		return Utilities.handleUnsupportedType(methodDecl.type, table);
@@ -380,6 +392,24 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitNewObjectExpr(NewObjectExpr expr, Type arg) {
+		List<Type> argTypes = new ArrayList<Type>();
+
+		for (Expression e : expr.argList)
+			argTypes.add(e.visit(this, null));
+
+		expr.matchedConstructor = expr.classtype.declaration.constructorDecl.getMatchingMethodDecl(argTypes);
+
+		if (expr.matchedConstructor == null) {
+			Utilities.reportError("No matching constructor for class " + expr.classtype.declaration.id, expr.posn);
+			return new ErrorType(expr.posn);
+		}
+
+		if (expr.matchedConstructor.isPrivate && currentClass != expr.matchedConstructor.parentClass) {
+			Utilities.reportError("Cannot access the matching constructor for " + expr.classtype.declaration.id,
+					expr.posn);
+			return new ErrorType(expr.posn);
+		}
+
 		return Utilities.handleUnsupportedType(expr.classtype, table);
 	}
 
@@ -476,4 +506,6 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	public Type visitBadRef(BadRef ref, Type arg) {
 		return new ErrorType(ref.posn);
 	}
+
+	public ClassDecl currentClass;
 }

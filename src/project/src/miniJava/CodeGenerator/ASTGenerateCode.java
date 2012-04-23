@@ -97,6 +97,9 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			md.visit(this, null);
 		}
 
+		// Also visit the constructors
+		cd.constructorDecl.visit(this, null);
+
 		return null;
 	}
 
@@ -446,6 +449,16 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		Machine.emit(Op.LOADL, -1);
 		Machine.emit(Op.LOADL, expr.classtype.declaration.runtimeEntity.size);
 		Machine.emit(Prim.newobj);
+
+		for(Expression e : expr.argList)
+			e.visit(this, null);
+
+		Machine.emit(Op.LOAD, Reg.ST, -(1 + expr.argList.size()));
+
+		int callInstrAddr = Machine.nextInstrAddr();
+		Machine.emit(Op.CALL, Reg.CB, 0);
+		methodDisplacements.put(callInstrAddr, expr.matchedConstructor.runtimeEntity);
+
 		return null;
 	}
 

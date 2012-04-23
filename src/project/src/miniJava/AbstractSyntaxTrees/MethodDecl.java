@@ -21,6 +21,7 @@ public class MethodDecl extends MemberDecl {
 		return v.visitMethodDecl(this, o);
 	}
 
+	public ClassDecl parentClass;
 	public ParameterDeclList parameterDeclList;
 	public StatementList statementList;
 	public Expression returnExp;
