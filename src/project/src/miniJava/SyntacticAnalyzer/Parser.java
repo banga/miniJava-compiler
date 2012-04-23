@@ -123,7 +123,7 @@ public class Parser {
 	 *         (FieldDeclaration | MethodDeclaration | ConstructorDeclaration)*
 	 *     <b>}</b>
 	 * 
-	 * FieldDeclaration ::= Declarators <i>id</i><b>;</b>
+	 * FieldDeclaration ::= Declarators <i>id</i> (<b>=</b> Expression)? <b>;</b>
 	 * 
 	 * MethodDeclaration ::= 
 	 *     Declarators <i>id</i><b>(</b>ParameterList?<b>) {</b>
@@ -169,7 +169,7 @@ public class Parser {
 			} else {
 				expect(TokenType.IDENTIFIER);
 
-				// Trying to name a regular method with class name
+				// Trying to name a regular method (or field) with class name
 				if (currentToken.spelling.equals(classId.spelling))
 					throw new SyntaxErrorException("Invalid modifiers on constructor " + currentToken);
 
@@ -178,6 +178,12 @@ public class Parser {
 				} else {
 					FieldDecl fieldDecl = new FieldDecl(memberDecl, memberDecl.posn);
 					fieldList.add(fieldDecl);
+					
+					if(currentToken.type == TokenType.EQUALTO) {
+						consume();
+						fieldDecl.initExpr = parseExpression();
+					}
+
 					expect(TokenType.SEMICOLON);
 				}
 			}

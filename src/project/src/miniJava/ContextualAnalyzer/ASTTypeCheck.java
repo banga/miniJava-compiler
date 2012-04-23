@@ -118,6 +118,11 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitFieldDecl(FieldDecl fd, Type type) {
+		if (fd.initExpr != null) {
+			Type initExprType = fd.initExpr.visit(this, null);
+			Utilities.validateTypeEquivalence(fd.type, initExprType, fd.posn);
+		}
+
 		return null;
 	}
 

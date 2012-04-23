@@ -23,4 +23,5 @@ public class FieldDecl extends MemberDecl {
 	}
 
 	public FieldRuntimeEntity runtimeEntity = new FieldRuntimeEntity(0);
+	public Expression initExpr;
 }

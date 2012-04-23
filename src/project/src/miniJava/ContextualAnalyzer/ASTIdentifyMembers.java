@@ -85,11 +85,11 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 
 		table.openScope();
 
-		for (FieldDecl fd : cd.fieldDeclList)
-			fd.visit(this, table);
-
 		for (OverloadedMethodDecl omd : cd.methodDeclList)
 			Utilities.addDeclaration(table, omd);
+
+		for (FieldDecl fd : cd.fieldDeclList)
+			fd.visit(this, table);
 
 		// Types must be visited only after declarations have been added
 		for (FieldDecl fd : cd.fieldDeclList)
@@ -118,6 +118,10 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 				Utilities.addDeclaration(table, fd);
 			}
 		}
+
+		if (fd.initExpr != null)
+			fd.initExpr.visit(this, table);
+
 		return null;
 	}
 
@@ -160,6 +164,8 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 		table.closeScope();
 
 		table.closeScope();
+
+		currentMethod = null;
 
 		return null;
 	}
@@ -396,12 +402,14 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 				return null;
 			}
 
-			// Non-static members from static method
-			if (scope == IdentificationTable.MEMBER_SCOPE && currentMethod.isStatic
-					&& !((MemberDecl) id.declaration).isStatic) {
-				Utilities.reportError("Non-static member " + id + " cannot be accessed from static method "
-						+ currentMethod.id, id.posn);
-				return null;
+			if(currentMethod != null) {
+				// Non-static members from static method
+				if (scope == IdentificationTable.MEMBER_SCOPE && currentMethod.isStatic
+						&& !((MemberDecl) id.declaration).isStatic) {
+					Utilities.reportError("Non-static member " + id + " cannot be accessed from static method "
+							+ currentMethod.id, id.posn);
+					return null;
+				}
 			}
 
 			// Handle int x = x + 2; case

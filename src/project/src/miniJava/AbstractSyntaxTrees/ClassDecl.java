@@ -6,6 +6,7 @@
 package miniJava.AbstractSyntaxTrees;
 
 import miniJava.CodeGenerator.ClassRuntimeEntity;
+import miniJava.CodeGenerator.MethodRuntimeEntity;
 import miniJava.ContextualAnalyzer.Utilities;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
@@ -126,4 +127,5 @@ public class ClassDecl extends Declaration {
 	public MethodDeclList methodDeclList;
 	public OverloadedMethodDecl constructorDecl;
 	public ClassRuntimeEntity runtimeEntity = new ClassRuntimeEntity(0);
+	public MethodRuntimeEntity fieldInitializerEntity = new MethodRuntimeEntity(0);
 }

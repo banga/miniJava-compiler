@@ -83,6 +83,9 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 
 	@Override
 	public AST visitFieldDecl(FieldDecl fd, IdentificationTable table) {
+		if (fd.initExpr != null)
+			fd.initExpr.visit(this, table);
+
 		return null;
 	}
 

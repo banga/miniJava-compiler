@@ -100,6 +100,20 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		// Also visit the constructors
 		cd.constructorDecl.visit(this, null);
 
+		// Create a field initializer function:
+		cd.fieldInitializerEntity.displacement = Machine.nextInstrAddr();
+
+		// Initialize fields with initializing expressions
+		for (FieldDecl fd : cd.fieldDeclList) {
+			if (fd.initExpr != null) {
+				Machine.emit(Op.LOADA, Reg.OB, 0); // Load object's address
+				Machine.emit(Op.LOADL, fd.runtimeEntity.displacement);
+				fd.initExpr.visit(this, null);
+				Machine.emit(Prim.fieldupd);
+			}
+		}
+		Machine.emit(Op.RETURN, 0, 0, 0);
+
 		return null;
 	}
 
@@ -446,11 +460,21 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 
 	@Override
 	public Void visitNewObjectExpr(NewObjectExpr expr, Object arg) {
+		ClassDecl classDecl = expr.classtype.declaration;
+
 		Machine.emit(Op.LOADL, -1);
-		Machine.emit(Op.LOADL, expr.classtype.declaration.runtimeEntity.size);
+		Machine.emit(Op.LOADL, classDecl.runtimeEntity.size);
 		Machine.emit(Prim.newobj);
 
-		for(Expression e : expr.argList)
+		/* Call the initializer function */
+		Machine.emit(Op.LOAD, Reg.ST, -1); // Load object's address
+
+		int fieldInitCallAddr = Machine.nextInstrAddr();
+		Machine.emit(Op.CALL, Reg.CB, 0);
+		methodDisplacements.put(fieldInitCallAddr, classDecl.fieldInitializerEntity);
+
+		/* Call the matching constructor */
+		for (Expression e : expr.argList)
 			e.visit(this, null);
 
 		Machine.emit(Op.LOAD, Reg.ST, -(1 + expr.argList.size()));
