@@ -27,6 +27,7 @@ public enum TokenType {
 
 	// Keywords
 	CLASS("class"),
+	EXTENDS("extends"),
 	PUBLIC("public"),
 	PRIVATE("private"),
 	RETURN("return"),

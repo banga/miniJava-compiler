@@ -12,8 +12,9 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ClassDecl extends Declaration {
 
-	public ClassDecl(Identifier id, FieldDeclList fdl, MethodDeclList mdl, OverloadedMethodDecl cdl, SourcePosition posn) {
+	public ClassDecl(Identifier id, Identifier superClassId, FieldDeclList fdl, MethodDeclList mdl, OverloadedMethodDecl cdl, SourcePosition posn) {
 		super(id, new ClassType(id.spelling, id.posn), posn);
+		this.superClassId = superClassId;
 		fieldDeclList = fdl;
 		methodDeclList = mdl;
 		constructorDecl = cdl;
@@ -128,4 +129,7 @@ public class ClassDecl extends Declaration {
 	public OverloadedMethodDecl constructorDecl;
 	public ClassRuntimeEntity runtimeEntity = new ClassRuntimeEntity(0);
 	public MethodRuntimeEntity fieldInitializerEntity = new MethodRuntimeEntity(0);
+
+	/* Inheritance */
+	public Identifier superClassId;
 }

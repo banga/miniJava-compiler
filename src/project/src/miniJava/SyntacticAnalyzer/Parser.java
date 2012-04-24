@@ -119,7 +119,7 @@ public class Parser {
 	 * 
 	 * <pre>
 	 * ClassDeclaration ::= 
-	 *     <b>class</b> <i>id</i> <b>{</b>
+	 *     <b>class</b> <i>id</i> (<b>extends</b> <i>id</i>)? <b>{</b>
 	 *         (FieldDeclaration | MethodDeclaration | ConstructorDeclaration)*
 	 *     <b>}</b>
 	 * 
@@ -142,8 +142,15 @@ public class Parser {
 	private ClassDecl parseClassDeclaration() throws SyntaxErrorException {
 		SourcePosition classPos = currentToken.position;
 		expect(TokenType.CLASS);
-		Identifier classId = new Identifier(currentToken.spelling, currentToken.position);
+		Identifier classId = new Identifier(currentToken.spelling, currentToken.position), superClassId = null;
 		expect(TokenType.IDENTIFIER);
+
+		if(currentToken.type == TokenType.EXTENDS) {
+			consume();
+			superClassId = new Identifier(currentToken.spelling, currentToken.position);
+			expect(TokenType.IDENTIFIER);
+		}
+		
 		expect(TokenType.LCURL);
 		FieldDeclList fieldList = new FieldDeclList();
 		MethodDeclList methodList = new MethodDeclList();
@@ -190,7 +197,7 @@ public class Parser {
 		}
 		expect(TokenType.RCURL);
 
-		return new ClassDecl(classId, fieldList, methodList, constructorDecls, classPos);
+		return new ClassDecl(classId, superClassId, fieldList, methodList, constructorDecls, classPos);
 	}
 
 	/**
