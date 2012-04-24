@@ -97,6 +97,10 @@ public class ClassDecl extends Declaration {
 				return null;
 			}
 		}
+		
+		if(superClass != null)
+			return superClass.declaration.getFieldDeclaration(fieldID, hasPrivateAccess, isStaticReference);
+		
 		return null;
 	}
 
@@ -114,6 +118,10 @@ public class ClassDecl extends Declaration {
 					return md;
 			}
 		}
+
+		if(superClass != null)
+			return superClass.declaration.getMethodDeclaration(methodID, hasPrivateAccess, isStaticReference);
+		
 		return null;
 	}
 

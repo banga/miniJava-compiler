@@ -71,6 +71,12 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 			Utilities.addDeclaration(table, cd);
 		}
 
+		// Associate super class declarations
+		for (ClassDecl cd : prog.classDeclList) {
+			if (cd.superClass != null)
+				cd.superClass.visit(this, table);
+		}
+
 		return null;
 	}
 
@@ -402,7 +408,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 				return null;
 			}
 
-			if(currentMethod != null) {
+			if (currentMethod != null) {
 				// Non-static members from static method
 				if (scope == IdentificationTable.MEMBER_SCOPE && currentMethod.isStatic
 						&& !((MemberDecl) id.declaration).isStatic) {
