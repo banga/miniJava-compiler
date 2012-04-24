@@ -21,11 +21,20 @@ public class ClassType extends Type {
 		return spelling;
 	}
 
+	/**
+	 * Note that this is asymmetric. A.equals(B) returns true if B = A or
+	 * derives from A
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof ClassType) {
-			return declaration == ((ClassType) obj).declaration;
-			// return spelling.equals(((ClassType) obj).spelling);
+			ClassType ct = (ClassType) obj;
+
+			if (declaration == ct.declaration)
+				return true;
+
+			if (ct.declaration.superClass != null)
+				return this.equals(ct.declaration.superClass);
 		}
 		return false;
 	}

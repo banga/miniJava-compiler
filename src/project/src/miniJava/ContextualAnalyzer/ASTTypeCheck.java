@@ -75,7 +75,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 						if (mainMethod == null && md.type.equals(BaseType.VOID_TYPE) && !md.isPrivate
 								&& md.id.spelling.equals("main") && md.parameterDeclList.size() == 1) {
 							ParameterDecl param = md.parameterDeclList.get(0);
-							if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE)) {
+							if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE, false)) {
 								mainMethod = md;
 							}
 						} else {
@@ -120,7 +120,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	public Type visitFieldDecl(FieldDecl fd, Type type) {
 		if (fd.initExpr != null) {
 			Type initExprType = fd.initExpr.visit(this, null);
-			Utilities.validateTypeEquivalence(fd.type, initExprType, fd.posn);
+			Utilities.validateTypeEquivalence(fd.type, initExprType, false, fd.posn);
 		}
 
 		return null;
@@ -164,7 +164,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 		Type returnType = (md.returnExp == null) ? BaseType.VOID_TYPE : md.returnExp.visit(this, null);
 
-		if (!Utilities.getTypeEquivalence(returnType, md.type)) {
+		if (!Utilities.getTypeEquivalence(md.type, returnType, false)) {
 			Utilities.reportError("Method " + md.id.spelling + " must return a result of type " + md.type, md.posn);
 		}
 
@@ -224,7 +224,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	public Type visitVardeclStmt(VarDeclStmt stmt, Type arg) {
 		if (stmt.initExp != null) {
 			Type expType = stmt.initExp.visit(this, null);
-			Utilities.validateTypeEquivalence(stmt.varDecl.type, expType, stmt.posn);
+			Utilities.validateTypeEquivalence(stmt.varDecl.type, expType, false, stmt.posn);
 		}
 		return null;
 	}
@@ -239,7 +239,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		}
 
 		Type valType = stmt.val.visit(this, null);
-		Utilities.validateTypeEquivalence(refType, valType, stmt.posn);
+		Utilities.validateTypeEquivalence(refType, valType, false, stmt.posn);
 
 		return null;
 	}
@@ -247,7 +247,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	@Override
 	public Type visitIfStmt(IfStmt stmt, Type arg) {
 		Type conditionType = stmt.cond.visit(this, null);
-		if (!Utilities.getTypeEquivalence(conditionType, BaseType.BOOLEAN_TYPE)) {
+		if (!Utilities.getTypeEquivalence(conditionType, BaseType.BOOLEAN_TYPE, false)) {
 			Utilities.reportError("Type mismatch: Cannot convert " + conditionType + " to boolean", stmt.cond.posn);
 			return new ErrorType(stmt.cond.posn);
 		}
@@ -284,7 +284,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 		case EQUALTO_EQUALTO:
 		case BANG_EQUALTO:
-			if (!Utilities.validateTypeEquivalence(leftType, rightType, expr.posn)) {
+			if (!Utilities.validateTypeEquivalence(leftType, rightType, true, expr.posn)) {
 				return new ErrorType(expr.posn);
 			}
 			resultType = new BaseType(TypeKind.BOOLEAN, "boolean", expr.posn);
@@ -292,10 +292,10 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 		case PIPE_PIPE:
 		case AMPERSAND_AMPERSAND:
-			if (!Utilities.validateTypeEquivalence(BaseType.BOOLEAN_TYPE, leftType, expr.left.posn)) {
+			if (!Utilities.validateTypeEquivalence(BaseType.BOOLEAN_TYPE, leftType, false, expr.left.posn)) {
 				return new ErrorType(expr.left.posn);
 			}
-			if (!Utilities.validateTypeEquivalence(BaseType.BOOLEAN_TYPE, rightType, expr.right.posn)) {
+			if (!Utilities.validateTypeEquivalence(BaseType.BOOLEAN_TYPE, rightType, false, expr.right.posn)) {
 				return new ErrorType(expr.right.posn);
 			}
 			resultType = new BaseType(TypeKind.BOOLEAN, "boolean", expr.posn);
@@ -305,10 +305,10 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		case MINUS:
 		case ASTERISK:
 		case SLASH:
-			if (!Utilities.validateTypeEquivalence(BaseType.INT_TYPE, leftType, expr.left.posn)) {
+			if (!Utilities.validateTypeEquivalence(BaseType.INT_TYPE, leftType, false, expr.left.posn)) {
 				return new ErrorType(expr.left.posn);
 			}
-			if (!Utilities.validateTypeEquivalence(BaseType.INT_TYPE, rightType, expr.right.posn)) {
+			if (!Utilities.validateTypeEquivalence(BaseType.INT_TYPE, rightType, false, expr.right.posn)) {
 				return new ErrorType(expr.right.posn);
 			}
 			resultType = new BaseType(TypeKind.INT, "int", expr.posn);
@@ -318,10 +318,10 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		case RANGLE_EQUALTO:
 		case LANGLE:
 		case RANGLE:
-			if (!Utilities.validateTypeEquivalence(BaseType.INT_TYPE, leftType, expr.left.posn)) {
+			if (!Utilities.validateTypeEquivalence(BaseType.INT_TYPE, leftType, false, expr.left.posn)) {
 				return new ErrorType(expr.left.posn);
 			}
-			if (!Utilities.validateTypeEquivalence(BaseType.INT_TYPE, rightType, expr.right.posn)) {
+			if (!Utilities.validateTypeEquivalence(BaseType.INT_TYPE, rightType, false, expr.right.posn)) {
 				return new ErrorType(expr.right.posn);
 			}
 			resultType = new BaseType(TypeKind.BOOLEAN, "boolean", expr.posn);

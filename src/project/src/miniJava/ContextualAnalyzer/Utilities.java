@@ -54,45 +54,52 @@ public abstract class Utilities {
 	/**
 	 * Return true if the two types are equivalent
 	 * 
-	 * @param type1
-	 * @param type2
+	 * @param lhsType
+	 * @param rhsType
+	 * @param isSymmetric
+	 *            true if lhs is allowed to be the derived type (used for ==)
 	 * @return
 	 */
-	public static boolean getTypeEquivalence(Type type1, Type type2) {
-		if (type1 instanceof UnsupportedType || type2 instanceof UnsupportedType)
+	public static boolean getTypeEquivalence(Type lhsType, Type rhsType, boolean isSymmetric) {
+		if (lhsType instanceof UnsupportedType || rhsType instanceof UnsupportedType)
 			return false;
-		if (type1 instanceof ErrorType || type2 instanceof ErrorType)
+		if (lhsType instanceof ErrorType || rhsType instanceof ErrorType)
 			return true;
-		return type1.equals(type2);
+		return lhsType.equals(rhsType) || (isSymmetric && rhsType.equals(lhsType));
 	}
 
 	/**
 	 * Report an error if the specified types are not equivalent
 	 * 
-	 * @param type1
-	 * @param type2
+	 * @param lhsType
+	 * @param rhsType
+	 * @param isSymmetric
+	 *            true if lhs is allowed to be the derived type (used for ==)
+	 * @param pos
 	 */
-	public static boolean validateTypeEquivalence(Type type1, Type type2, SourcePosition pos) {
-		boolean b = getTypeEquivalence(type1, type2);
+	public static boolean validateTypeEquivalence(Type lhsType, Type rhsType, boolean isSymmetric, SourcePosition pos) {
+		boolean b = getTypeEquivalence(lhsType, rhsType, isSymmetric);
 		if (!b) {
-			if (type1 instanceof UnsupportedType || type2 instanceof UnsupportedType) {
-				if (type1 instanceof UnsupportedType) {
-					reportError("Unsupported type " + type1.spelling, pos);
+			if (lhsType instanceof UnsupportedType || rhsType instanceof UnsupportedType) {
+				if (lhsType instanceof UnsupportedType) {
+					reportError("Unsupported type " + lhsType.spelling, pos);
 				}
-				if (type2 instanceof UnsupportedType) {
-					reportError("Unsupported type " + type2.spelling, pos);
+				if (rhsType instanceof UnsupportedType) {
+					reportError("Unsupported type " + rhsType.spelling, pos);
 				}
 			} else {
-				reportError("Type mismatch: Cannot convert from " + type2 + " to " + type1, pos);
+				reportError("Type mismatch: Cannot convert from " + rhsType + " to " + lhsType, pos);
 			}
 		}
 		return b;
 	}
 
 	public static Type handleUnsupportedType(Type type, IdentificationTable table) {
-//		if (type instanceof ClassType && ((ClassType) type).spelling.equals("String")
-//				&& table.getScope("String") == IdentificationTable.PREDEFINED_SCOPE)
-//			return new UnsupportedType(IdentificationTable.STRING_DECL, type.posn);
+		// if (type instanceof ClassType && ((ClassType)
+		// type).spelling.equals("String")
+		// && table.getScope("String") == IdentificationTable.PREDEFINED_SCOPE)
+		// return new UnsupportedType(IdentificationTable.STRING_DECL,
+		// type.posn);
 		return type;
 	}
 
