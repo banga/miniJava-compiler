@@ -142,12 +142,13 @@ public class Parser {
 	private ClassDecl parseClassDeclaration() throws SyntaxErrorException {
 		SourcePosition classPos = currentToken.position;
 		expect(TokenType.CLASS);
-		Identifier classId = new Identifier(currentToken.spelling, currentToken.position), superClassId = null;
+		Identifier classId = new Identifier(currentToken.spelling, currentToken.position);
 		expect(TokenType.IDENTIFIER);
 
+		ClassType superClassType = null;
 		if(currentToken.type == TokenType.EXTENDS) {
 			consume();
-			superClassId = new Identifier(currentToken.spelling, currentToken.position);
+			superClassType = new ClassType(currentToken.spelling, currentToken.position);
 			expect(TokenType.IDENTIFIER);
 		}
 		
@@ -197,7 +198,7 @@ public class Parser {
 		}
 		expect(TokenType.RCURL);
 
-		return new ClassDecl(classId, superClassId, fieldList, methodList, constructorDecls, classPos);
+		return new ClassDecl(classId, superClassType, fieldList, methodList, constructorDecls, classPos);
 	}
 
 	/**
