@@ -59,20 +59,75 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		ADDRESS, VALUE, METHOD
 	};
 
+	// Displacement of class objects from SB
+	int classObjectDisplacement;
+
 	// Displacement of local variables from LB
 	int localDisplacement;
 	HashMap<Integer, MethodRuntimeEntity> methodDisplacements = new HashMap<Integer, MethodRuntimeEntity>();
+
+	/**
+	 * Calculates the correct class object displacement without emitting code
+	 * 
+	 * @param cd
+	 */
+	private void calculateClassObjectDisplacement(ClassDecl cd) {
+		if (cd.runtimeEntity.classObjectDisplacement != -1)
+			return;
+
+		cd.runtimeEntity.classObjectDisplacement = 0;
+		if (cd.superClass != null) {
+			calculateClassObjectDisplacement(cd.superClass.declaration);
+			cd.runtimeEntity.classObjectDisplacement = cd.superClass.declaration.runtimeEntity.classObjectDisplacement;
+		}
+
+		cd.runtimeEntity.classObjectDisplacement = classObjectDisplacement;
+		classObjectDisplacement += cd.classObject.size() + 2;
+	}
+
+	/**
+	 * Emit code for class object creation if not emitted already
+	 * 
+	 * @param cd
+	 */
+	private void emitClassObject(ClassDecl cd) {
+		if (cd.runtimeEntity.isClassObjectEmitted)
+			return;
+
+		// First emit the super class
+		if (cd.superClass != null)
+			emitClassObject(cd.superClass.declaration);
+
+		if (cd.superClass != null) {
+			Machine.emit(Op.LOADA, Reg.SB, cd.superClass.declaration.runtimeEntity.classObjectDisplacement);
+		} else {
+			Machine.emit(Op.LOADL, -1);
+		}
+
+		Machine.emit(Op.LOADL, cd.classObject.size());
+		for (MethodDecl md : cd.classObject) {
+			Machine.emit(Op.LOADA, Reg.CB, md.runtimeEntity.displacement);
+		}
+
+		cd.runtimeEntity.isClassObjectEmitted = true;
+	}
 
 	@Override
 	public Void visitPackage(Package prog, Object arg) {
 		Machine.initCodeGen();
 
-		Machine.emit(Op.LOADL, 0);
-		Machine.emit(Op.LOADL, -1);
-		int mainCallAddress = Machine.nextInstrAddr();
-		Machine.emit(Op.CALL, Reg.CB, 0);
-		Machine.emit(Op.HALT, 0, 0, 0);
+		// Pre-calculate class object displacements, field displacements etc.
+		classObjectDisplacement = 0;
+		for (ClassDecl cd : prog.classDeclList) {
+			calculateClassObjectDisplacement(cd);
+			cd.populateRuntimeEntities();
+		}
 
+		// Jump to class object creation
+		int classObjectJumpAddress = Machine.nextInstrAddr();
+		Machine.emit(Op.JUMP, Reg.CB, 0);
+
+		// Generate code for all methods
 		for (ClassDecl cd : prog.classDeclList)
 			cd.visit(this, null);
 
@@ -80,9 +135,19 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		for (Integer addr : methodDisplacements.keySet())
 			Machine.patch(addr, methodDisplacements.get(addr).displacement);
 
-		// Patch main method call
-		MethodDecl mainMethod = (MethodDecl) arg;
-		Machine.patch(mainCallAddress, mainMethod.runtimeEntity.displacement);
+		// Patch jump to class object creation
+		Machine.patch(classObjectJumpAddress, Machine.nextInstrAddr());
+
+		// Create class objects
+		for (ClassDecl cd : prog.classDeclList) {
+			emitClassObject(cd);
+		}
+
+		// Call main method
+		Machine.emit(Op.LOADL, 0);
+		Machine.emit(Op.LOADL, -1);
+		Machine.emit(Op.CALL, Reg.CB, ((MethodDecl) arg).runtimeEntity.displacement);
+		Machine.emit(Op.HALT, 0, 0, 0);
 
 		return null;
 	}
@@ -141,8 +206,10 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			}
 		}
 
-		Machine.emit(Op.PUSH, numAllocated);
-		localDisplacement += numAllocated;
+		if (numAllocated > 0) {
+			Machine.emit(Op.PUSH, numAllocated);
+			localDisplacement += numAllocated;
+		}
 
 		return numAllocated;
 	}
@@ -237,7 +304,6 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		return null;
 	}
 
-	/* TODO */
 	@Override
 	public Void visitCallStmt(CallStmt stmt, Object arg) {
 		// Get the arguments on the stack
@@ -462,7 +528,7 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	public Void visitNewObjectExpr(NewObjectExpr expr, Object arg) {
 		ClassDecl classDecl = expr.classtype.declaration;
 
-		Machine.emit(Op.LOADL, -1);
+		Machine.emit(Op.LOADL, classDecl.runtimeEntity.classObjectDisplacement);
 		Machine.emit(Op.LOADL, classDecl.runtimeEntity.size);
 		Machine.emit(Prim.newobj);
 
@@ -560,9 +626,18 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			// of OB on the stack. Otherwise, DeRef will be used to place the
 			// right value of the instance address on the stack. So we assume
 			// that the right value is already on the stack.
-			int callInstrAddr = Machine.nextInstrAddr();
-			Machine.emit(Op.CALL, Reg.CB, 0);
-			methodDisplacements.put(callInstrAddr, ((MethodDecl) decl).runtimeEntity);
+
+			MethodDecl methodDecl = (MethodDecl) decl;
+
+			// Do an indirect call only if the method can be overridden
+			if (methodDecl.runtimeEntity.isOverridden) {
+				Machine.emit(Op.CALLD, methodDecl.parentClass.classObject.indexOf(methodDecl));
+			} else {
+				int callInstrAddr = Machine.nextInstrAddr();
+				Machine.emit(Op.CALL, Reg.CB, 0);
+				methodDisplacements.put(callInstrAddr, methodDecl.runtimeEntity);
+			}
+
 		}
 
 		return null;

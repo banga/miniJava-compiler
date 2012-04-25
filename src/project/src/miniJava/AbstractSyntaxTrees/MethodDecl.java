@@ -5,6 +5,8 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import java.util.Iterator;
+
 import miniJava.CodeGenerator.MethodRuntimeEntity;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
@@ -15,6 +17,30 @@ public class MethodDecl extends MemberDecl {
 		parameterDeclList = pl;
 		statementList = sl;
 		returnExp = e;
+	}
+
+	public void doSomething() {
+	}
+
+	/**
+	 * Determines whether method m1 and m2 have same signatures
+	 * 
+	 * @param m1
+	 * @param m2
+	 * @return
+	 */
+	public boolean isEqualTo(MethodDecl md) {
+		if (!id.spelling.equals(md.id.spelling) || parameterDeclList.size() != md.parameterDeclList.size())
+			return false;
+
+		Iterator<ParameterDecl> it = md.parameterDeclList.iterator();
+		for (ParameterDecl pd1 : parameterDeclList) {
+			ParameterDecl pd2 = it.next();
+			if (!pd1.type.isEqualTo(pd2.type))
+				return false;
+		}
+
+		return true;
 	}
 
 	public <A, R> R visit(Visitor<A, R> v, A o) {

@@ -5,6 +5,9 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import miniJava.CodeGenerator.ClassRuntimeEntity;
 import miniJava.CodeGenerator.MethodRuntimeEntity;
 import miniJava.ContextualAnalyzer.Utilities;
@@ -12,19 +15,14 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ClassDecl extends Declaration {
 
-	public ClassDecl(Identifier id, ClassType superClass, FieldDeclList fdl, MethodDeclList mdl, OverloadedMethodDecl cdl, SourcePosition posn) {
+	public ClassDecl(Identifier id, ClassType superClass, FieldDeclList fdl, MethodDeclList mdl,
+			OverloadedMethodDecl cdl, SourcePosition posn) {
 		super(id, new ClassType(id.spelling, id.posn), posn);
 		this.superClass = superClass;
 		fieldDeclList = fdl;
 		methodDeclList = mdl;
 		constructorDecl = cdl;
 		((ClassType) type).declaration = this;
-
-		runtimeEntity.size = fdl.size();
-		int fieldDisplacement = 0;
-		for (FieldDecl fd : fdl) {
-			fd.runtimeEntity.displacement = fieldDisplacement++;
-		}
 
 		// Provide a default constructor if none has been provided
 		if (constructorDecl == null) {
@@ -97,10 +95,10 @@ public class ClassDecl extends Declaration {
 				return null;
 			}
 		}
-		
-		if(superClass != null)
+
+		if (superClass != null)
 			return superClass.declaration.getFieldDeclaration(fieldID, hasPrivateAccess, isStaticReference);
-		
+
 		return null;
 	}
 
@@ -119,9 +117,9 @@ public class ClassDecl extends Declaration {
 			}
 		}
 
-		if(superClass != null)
+		if (superClass != null)
 			return superClass.declaration.getMethodDeclaration(methodID, hasPrivateAccess, isStaticReference);
-		
+
 		return null;
 	}
 
@@ -132,12 +130,93 @@ public class ClassDecl extends Declaration {
 		return md;
 	}
 
+	/**
+	 * Populate class and field runtime entities if they have not been populated
+	 * yet
+	 */
+	public void populateRuntimeEntities() {
+		if (runtimeEntity.size == -1) {
+			runtimeEntity.size = 0;
+
+			if (superClass != null) {
+				superClass.declaration.populateRuntimeEntities();
+				runtimeEntity.size = superClass.declaration.runtimeEntity.size;
+			}
+
+			for (FieldDecl fd : fieldDeclList) {
+				fd.runtimeEntity.displacement = runtimeEntity.size++;
+			}
+		}
+	}
+
+	/**
+	 * Builds the class object for this class
+	 */
+	public void makeClassObject() {
+		if (classObject != null)
+			return;
+
+		classObject = new ArrayList<MethodDecl>();
+
+		if (superClass != null) {
+			superClass.declaration.makeClassObject();
+			classObject.addAll(superClass.declaration.classObject);
+		}
+
+		List<MethodDecl> nonOverridingMethods = new ArrayList<MethodDecl>();
+
+		// Override matching methods
+		for (OverloadedMethodDecl omd : methodDeclList) {
+			for (MethodDecl md : omd) {
+
+				// Static methods are not part of class objects
+				if (md.isStatic)
+					continue;
+
+				boolean hasOverridden = false;
+
+				for (int i = 0; i < classObject.size(); i++) {
+					MethodDecl parentsMethod = classObject.get(i);
+
+					// Cannot override a private method
+					if (parentsMethod.isPrivate)
+						continue;
+
+					if (md.isEqualTo(parentsMethod)) {
+						if (parentsMethod.isPrivate != md.isPrivate) {
+							Utilities.reportError("Cannot change visibility of method " + md.id + " in derived class "
+									+ id, md.posn);
+						}
+
+						if (!parentsMethod.type.isEqualTo(md.type)) {
+							Utilities.reportError("Cannot change return type in overriding method " + md.id
+									+ " in class " + id, md.posn);
+						}
+
+						parentsMethod.runtimeEntity.isOverridden = true;
+
+						classObject.set(i, md);
+						hasOverridden = true;
+						break;
+					}
+				}
+
+				if (!hasOverridden)
+					nonOverridingMethods.add(md);
+			}
+		}
+
+		// Append the non-overriding methods to the classObject
+		classObject.addAll(nonOverridingMethods);
+	}
+
 	public FieldDeclList fieldDeclList;
 	public MethodDeclList methodDeclList;
 	public OverloadedMethodDecl constructorDecl;
-	public ClassRuntimeEntity runtimeEntity = new ClassRuntimeEntity(0);
+	public ClassRuntimeEntity runtimeEntity = new ClassRuntimeEntity(-1);
 	public MethodRuntimeEntity fieldInitializerEntity = new MethodRuntimeEntity(0);
 
 	/* Inheritance */
 	public ClassType superClass;
+	public List<MethodDecl> classObject;
 }

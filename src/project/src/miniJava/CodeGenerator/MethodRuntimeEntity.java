@@ -8,4 +8,5 @@ public class MethodRuntimeEntity {
 
 	// Displacement in text/code segment as in d[CB]
 	public int displacement;
+	public boolean isOverridden = false;
 }

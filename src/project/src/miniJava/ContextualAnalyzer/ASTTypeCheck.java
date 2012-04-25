@@ -102,6 +102,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitClassDecl(ClassDecl cd, Type type) {
+		cd.makeClassObject();
 		currentClass = cd;
 
 		for (FieldDecl fd : cd.fieldDeclList)
