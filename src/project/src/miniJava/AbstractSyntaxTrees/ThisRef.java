@@ -17,7 +17,7 @@ public class ThisRef extends SimpleRef {
 	public <A, R> R visit(Visitor<A, R> v, A o) {
 		return v.visitThisRef(this, o);
 	}
-	
+
 	@Override
 	public String toString() {
 		return "this";

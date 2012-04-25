@@ -17,7 +17,7 @@ public class VarDecl extends LocalDecl {
 	public <A, R> R visit(Visitor<A, R> v, A o) {
 		return v.visitVarDecl(this, o);
 	}
-	
+
 	public LocalRuntimeEntity runtimeEntity = new LocalRuntimeEntity(0);
 	public boolean initialized = false;
 }

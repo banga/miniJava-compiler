@@ -77,7 +77,7 @@ public class Scanner {
 
 			case '-':
 				nextChar();
-				if(currentChar == '-')
+				if (currentChar == '-')
 					throw new ScannerException("--", position, "-- is not supported");
 				return new Token("-", position);
 
@@ -98,7 +98,7 @@ public class Scanner {
 				String spelling = Character.toString(currentChar);
 				nextChar();
 				// Account for >=, <=, == and !=
-				if(currentChar == '=') {
+				if (currentChar == '=') {
 					spelling = spelling + currentChar;
 					nextChar();
 				}
@@ -120,7 +120,7 @@ public class Scanner {
 			case '"':
 				nextChar();
 				StringBuilder str = new StringBuilder();
-				while(currentChar != '"' && currentChar != EOT) {
+				while (currentChar != '"' && currentChar != EOT) {
 					str.append(currentChar);
 					nextChar();
 				}
@@ -164,11 +164,12 @@ public class Scanner {
 	 * Consumes expected character if found
 	 * 
 	 * @param expectedChar
-	 * @throws ScannerException if expected character is not found
+	 * @throws ScannerException
+	 *             if expected character is not found
 	 * @throws IOException
 	 */
 	private void expect(char expectedChar) throws ScannerException, IOException {
-		if(currentChar != expectedChar)
+		if (currentChar != expectedChar)
 			throw new ScannerException(Character.toString(currentChar), position, "Expected " + expectedChar);
 		nextChar();
 	}
@@ -189,7 +190,7 @@ public class Scanner {
 			if (currentChar == '\r') {
 				return nextChar();
 			}
-			if(currentChar == '\n') {
+			if (currentChar == '\n') {
 				position.column = 0;
 				position.line++;
 			} else {

@@ -13,7 +13,7 @@ public class SourcePosition {
 		this.line = line;
 		this.column = column;
 	}
-	
+
 	public SourcePosition(SourcePosition position) {
 		this.line = position.line;
 		this.column = position.column;

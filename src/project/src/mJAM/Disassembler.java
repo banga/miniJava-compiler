@@ -9,9 +9,8 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Disassemble the mJAM object code 
- * from input file xxx.mJAM 
- * into output file xxx.asm
+ * Disassemble the mJAM object code from input file xxx.mJAM into output file
+ * xxx.asm
  * 
  * @author prins
  * @version COMP 520 v2.2
@@ -29,11 +28,15 @@ public class Disassembler {
 	}
 
 	/**
-	 * Writes the r-field of an instruction in the form "l<I>reg</I>r", where
-	 * l and r are the bracket characters to use.
-	 * @param leftbracket     the character to print before the register.
-	 * @param r           the number of the register.
-	 * @param rightbracket    the character to print after the register.
+	 * Writes the r-field of an instruction in the form "l<I>reg</I>r", where l
+	 * and r are the bracket characters to use.
+	 * 
+	 * @param leftbracket
+	 *            the character to print before the register.
+	 * @param r
+	 *            the number of the register.
+	 * @param rightbracket
+	 *            the character to print after the register.
 	 */
 	private void writeR(char leftbracket, int r, char rightbracket) {
 		asmWrite(Character.toString(leftbracket));
@@ -51,15 +54,19 @@ public class Disassembler {
 	// Writes the n-field of an instruction.
 	/**
 	 * Writes the n-field of an instruction in the form "(n)".
-	 * @param n   the integer to write.
+	 * 
+	 * @param n
+	 *            the integer to write.
 	 */
 	private void writeN(int n) {
-		asmWrite(String.format("%-6s","(" + n + ")"));
+		asmWrite(String.format("%-6s", "(" + n + ")"));
 	}
 
 	/**
 	 * Writes the d-field of an instruction.
-	 * @param d   the integer to write.
+	 * 
+	 * @param d
+	 *            the integer to write.
 	 */
 	private void writeD(int d) {
 		asmWrite(Integer.toString(d));
@@ -67,16 +74,20 @@ public class Disassembler {
 
 	/**
 	 * Writes the name of primitive routine with relative address d.
-	 * @param d   the displacment of the primitive routine.
+	 * 
+	 * @param d
+	 *            the displacment of the primitive routine.
 	 */
 	private void writePrimitive(int d) {
 		Machine.Prim prim = Machine.intToPrim[d];
-		asmWrite(String.format("%-8s",prim.toString()));
+		asmWrite(String.format("%-8s", prim.toString()));
 	}
-		
+
 	/**
 	 * Writes the given instruction in assembly-code format.
-	 * @param instr   the instruction to display.
+	 * 
+	 * @param instr
+	 *            the instruction to display.
 	 */
 	private void writeInstruction(Instruction instr) {
 
@@ -86,7 +97,7 @@ public class Disassembler {
 			targetLabel = addrToLabel.get(instr.d);
 
 		Machine.Op instruction = Machine.intToOp[instr.op];
-		asmWrite(String.format("%-7s",instruction.toString()));
+		asmWrite(String.format("%-7s", instruction.toString()));
 		switch (instruction) {
 		case LOAD:
 			blankN();
@@ -184,8 +195,7 @@ public class Disassembler {
 		try {
 			asmOut = new FileWriter(asmFileName);
 		} catch (IOException e) {
-			System.out.println("Disassembler: can not create asm output file "
-					+ asmName);
+			System.out.println("Disassembler: can not create asm output file " + asmName);
 			error = true;
 			return;
 		}
@@ -197,13 +207,15 @@ public class Disassembler {
 			Machine.Op op = Machine.intToOp[inst.op];
 			switch (op) {
 			case CALL:
-				// only consider calls (branches) within code memory (i.e. not primitives)
+				// only consider calls (branches) within code memory (i.e. not
+				// primitives)
 				if (inst.r == Machine.Reg.CB.ordinal())
 					targets.add(inst.d);
 				break;
 			case JUMP:
-				// address following an unconditional branch is an implicit target
-				targets.add(addr+1);
+				// address following an unconditional branch is an implicit
+				// target
+				targets.add(addr + 1);
 				/* FALL THROUGH! */
 			case JUMPIF:
 				// a jump of any sort creates a branch target
@@ -215,13 +227,13 @@ public class Disassembler {
 		addrToLabel = new HashMap<Integer, String>();
 		int labelCounter = 10;
 		for (Integer addr : targets) {
-			String label = "L" + labelCounter++ ;
+			String label = "L" + labelCounter++;
 			addrToLabel.put(addr, label);
 		}
 
 		// disassemble each instruction
 		for (int addr = Machine.CB; addr < Machine.CT; addr++) {
-			
+
 			// generate instruction address
 			asmWrite(String.format("%3d  ", addr));
 
@@ -234,7 +246,7 @@ public class Disassembler {
 			// instruction
 			writeInstruction(Machine.code[addr]);
 
-			// newline 
+			// newline
 			asmWrite("\n");
 		}
 
@@ -265,6 +277,7 @@ public class Disassembler {
 
 	/**
 	 * Disassemble object file
+	 * 
 	 * @return true if error encountered else false
 	 */
 	public boolean disassemble() {
@@ -272,15 +285,13 @@ public class Disassembler {
 
 		// read object file into code store
 		if (objectFile.read()) {
-			System.out.println("Disassembler: unable to read object file"
-					+ objectFileName);
+			System.out.println("Disassembler: unable to read object file" + objectFileName);
 			return true;
 		}
 
 		// assembler-code output file name
 		if (objectFileName.endsWith(".mJAM"))
-			asmName = objectFileName.substring(0, objectFileName.length() - 5)
-					+ ".asm";
+			asmName = objectFileName.substring(0, objectFileName.length() - 5) + ".asm";
 		else
 			asmName = objectFileName + ".asm";
 
@@ -288,11 +299,10 @@ public class Disassembler {
 		disassembleProgram(asmName);
 
 		if (error) {
-			System.out.println("Disassembler: unable to write asm file"
-					+ asmName);
+			System.out.println("Disassembler: unable to write asm file" + asmName);
 			return true;
 		}
-		
+
 		return false;
 	}
 }

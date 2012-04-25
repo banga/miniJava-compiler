@@ -60,10 +60,11 @@ public abstract class Utilities {
 	 * @return
 	 */
 	public static boolean getTypeEquivalence(Type lhsType, Type rhsType, boolean isSymmetric) {
-//		if (lhsType instanceof UnsupportedType || rhsType instanceof UnsupportedType)
-//			return false;
-//		if (lhsType instanceof ErrorType || rhsType instanceof ErrorType)
-//			return true;
+		// if (lhsType instanceof UnsupportedType || rhsType instanceof
+		// UnsupportedType)
+		// return false;
+		// if (lhsType instanceof ErrorType || rhsType instanceof ErrorType)
+		// return true;
 		return lhsType.isEquivalentTo(rhsType) || (isSymmetric && rhsType.isEquivalentTo(lhsType));
 	}
 

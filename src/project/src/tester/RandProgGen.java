@@ -280,7 +280,14 @@ public class RandProgGen {
 		g.addIdentifierSymbol("id");
 		g.addNumberSymbol("num");
 		g.addRule("unop", "- | !");
-		g.addRule("binop", "+ | - | / | && | > | < | >= | <= | == | !="); // Can't include * or || at the moment
+		g.addRule("binop", "+ | - | / | && | > | < | >= | <= | == | !="); // Can't
+																			// include
+																			// *
+																			// or
+																			// ||
+																			// at
+																			// the
+																			// moment
 
 		g.addRule("Program", "ClassDeclaration*");
 		g.addRule("ClassDeclaration", "class id {\n MemberDeclaration* }\n");
@@ -343,24 +350,24 @@ public class RandProgGen {
 
 		for (int i = 0; i < nFiles; i++) {
 			String fileName = "../" + filePrefix + i + ".mjava";
-			ProcessBuilder pb = new ProcessBuilder("java", "miniJava.Compiler", fileName)
-					.directory(new File(System.getProperty("java.class.path")));
+			ProcessBuilder pb = new ProcessBuilder("java", "miniJava.Compiler", fileName).directory(new File(System
+					.getProperty("java.class.path")));
 			pb.redirectErrorStream(true);
 			try {
 				Process p = pb.start();
 
 				PrintStream outfile = new PrintStream(new FileOutputStream(filePrefix + i + ".out"));
 				Scanner scanner = new Scanner(p.getInputStream());
-				while(scanner.hasNextLine()) {
+				while (scanner.hasNextLine()) {
 					outfile.println(scanner.nextLine());
 				}
 				outfile.close();
 
 				int exitValue = p.waitFor();
-				if(exitValue != 0 && exitValue != 4) {
+				if (exitValue != 0 && exitValue != 4) {
 					System.err.println("Exited with invalid value " + exitValue + " for " + fileName);
 				}
-				
+
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (InterruptedException e) {

@@ -11,25 +11,27 @@ import java.io.FileOutputStream;
 import java.io.DataOutputStream;
 
 public class ObjectFile {
-	
+
 	String objectFileName;
 
 	public ObjectFile(String objectFileName) {
 		super();
 		this.objectFileName = objectFileName;
 	}
-	
+
 	/**
 	 * Write code store as object file
-	 * @param output  object file
+	 * 
+	 * @param output
+	 *            object file
 	 * @return true if write fails
 	 */
-	public boolean write(){
+	public boolean write() {
 		boolean failed = false;
 		try {
 			FileOutputStream objectFile = new FileOutputStream(objectFileName);
 			DataOutputStream is = new DataOutputStream(objectFile);
-			for (int i = Machine.CB; i < Machine.CT; i++ ){
+			for (int i = Machine.CB; i < Machine.CT; i++) {
 				Instruction inst = Machine.code[i];
 				is.writeInt(inst.op);
 				is.writeInt(inst.n);
@@ -37,13 +39,15 @@ public class ObjectFile {
 				is.writeInt(inst.d);
 			}
 			objectFile.close();
+		} catch (Exception e) {
+			failed = true;
 		}
-		catch (Exception e) {failed = true;}
 		return failed;
 	}
 
 	/**
-	 * Read object file into code store, setting CT 
+	 * Read object file into code store, setting CT
+	 * 
 	 * @return true if object code read fails
 	 */
 	public boolean read() {
@@ -51,9 +55,9 @@ public class ObjectFile {
 		try {
 			FileInputStream objectFile = new FileInputStream(objectFileName);
 			DataInputStream is = new DataInputStream(objectFile);
-			
+
 			Machine.CT = Machine.CB;
-			while (is.available() > 0 && Machine.CT < Machine.PB){
+			while (is.available() > 0 && Machine.CT < Machine.PB) {
 				Instruction inst = new Instruction();
 				inst.op = is.readInt();
 				inst.n = is.readInt();
@@ -64,7 +68,7 @@ public class ObjectFile {
 			objectFile.close();
 		} catch (Exception e) {
 			failed = true;
-		}	
+		}
 		return failed;
 	}
 }

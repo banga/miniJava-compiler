@@ -28,15 +28,17 @@ public class QualifiedRef extends Reference {
 
 	public boolean thisRelative;
 	public IdentifierList qualifierList;
-	
+
 	@Override
 	public Declaration getDeclaration() {
-		// throw new RuntimeException("QualifiedRef's getDeclaration should never be called!");
+		// throw new
+		// RuntimeException("QualifiedRef's getDeclaration should never be called!");
 		return null;
 	}
 
 	@Override
 	public void setDeclaration(Declaration decl) {
-		// throw new RuntimeException("QualifiedRef's setDeclaration should never be called!");
+		// throw new
+		// RuntimeException("QualifiedRef's setDeclaration should never be called!");
 	}
 }

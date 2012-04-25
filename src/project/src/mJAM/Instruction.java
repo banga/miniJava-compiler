@@ -24,13 +24,13 @@ public class Instruction {
 	// Java has no type synonyms, so the following representations are
 	// assumed:
 	//
-	//  type
-	//    OpCode = 0..15;  {4 bits unsigned}
-	//    Register = 0..15; (4 bits unsigned)
-	//    Length = 0..255;  {8 bits unsigned}
-	//    Operand = -2147483648 .. +2147483647;  (32 bits signed for use with LOADL)
+	// type
+	// OpCode = 0..15; {4 bits unsigned}
+	// Register = 0..15; (4 bits unsigned)
+	// Length = 0..255; {8 bits unsigned}
+	// Operand = -2147483648 .. +2147483647; (32 bits signed for use with LOADL)
 	public int op; // OpCode
-	public int r;  // RegisterNumber
-	public int n;  // Length
-	public int d;  // Operand
+	public int r; // RegisterNumber
+	public int n; // Length
+	public int d; // Operand
 }

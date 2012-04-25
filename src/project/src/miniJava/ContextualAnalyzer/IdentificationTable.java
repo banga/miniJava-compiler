@@ -85,8 +85,8 @@ public class IdentificationTable {
 		systemFields.add(out);
 
 		// class System;
-		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), null, systemFields, new MethodDeclList(), null,
-				null);
+		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), null, systemFields, new MethodDeclList(),
+				null, null);
 
 		try {
 			set(systemDecl);

@@ -26,7 +26,7 @@ public class IndexedRef extends Reference {
 
 	@Override
 	public void setDeclaration(Declaration decl) {
-		//ref.setDeclaration(decl);
+		// ref.setDeclaration(decl);
 		throw new RuntimeException("IndexedRef's setDeclaration should never be called!");
 	}
 

@@ -41,7 +41,7 @@ public class Token {
 		this.spelling = spelling;
 		this.position = new SourcePosition(position.line, position.column);
 	}
-	
+
 	public String toString() {
 		return type + ": " + spelling + " at " + position;
 	}

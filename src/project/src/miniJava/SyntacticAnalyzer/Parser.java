@@ -146,12 +146,12 @@ public class Parser {
 		expect(TokenType.IDENTIFIER);
 
 		ClassType superClassType = null;
-		if(currentToken.type == TokenType.EXTENDS) {
+		if (currentToken.type == TokenType.EXTENDS) {
 			consume();
 			superClassType = new ClassType(currentToken.spelling, currentToken.position);
 			expect(TokenType.IDENTIFIER);
 		}
-		
+
 		expect(TokenType.LCURL);
 		FieldDeclList fieldList = new FieldDeclList();
 		MethodDeclList methodList = new MethodDeclList();
@@ -186,8 +186,8 @@ public class Parser {
 				} else {
 					FieldDecl fieldDecl = new FieldDecl(memberDecl, memberDecl.posn);
 					fieldList.add(fieldDecl);
-					
-					if(currentToken.type == TokenType.EQUALTO) {
+
+					if (currentToken.type == TokenType.EQUALTO) {
 						consume();
 						fieldDecl.initExpr = parseExpression();
 					}
