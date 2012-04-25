@@ -44,6 +44,7 @@ import miniJava.AbstractSyntaxTrees.StatementList;
 import miniJava.AbstractSyntaxTrees.StatementType;
 import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.AbstractSyntaxTrees.ThisRef;
+import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
 import miniJava.AbstractSyntaxTrees.UnsupportedType;
 import miniJava.AbstractSyntaxTrees.VarDecl;
@@ -354,9 +355,14 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			// instance on stack
 			Machine.emit(Op.LOADA, Reg.OB, 0);
 		}
+
 		// The methodRef generates a CALL statement
 		stmt.methodRef.visit(this, FetchType.METHOD);
 
+		// When only called for side-effect, pop any value that may be returned
+		if(methodDecl.type.typeKind != TypeKind.VOID)
+			Machine.emit(Op.POP, 1);
+		
 		return null;
 	}
 
@@ -637,7 +643,6 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 				Machine.emit(Op.CALL, Reg.CB, 0);
 				methodDisplacements.put(callInstrAddr, methodDecl.runtimeEntity);
 			}
-
 		}
 
 		return null;
