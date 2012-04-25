@@ -46,6 +46,7 @@ import miniJava.AbstractSyntaxTrees.UnaryExpr;
 import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
+import miniJava.ContextualAnalyzer.IdentificationTable;
 
 public class Parser {
 	private Scanner scanner;
@@ -150,6 +151,8 @@ public class Parser {
 			consume();
 			superClassType = new ClassType(currentToken.spelling, currentToken.position);
 			expect(TokenType.IDENTIFIER);
+		} else {
+			superClassType = IdentificationTable.OBJECT_TYPE;
 		}
 
 		expect(TokenType.LCURL);

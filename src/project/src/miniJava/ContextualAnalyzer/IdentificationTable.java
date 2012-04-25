@@ -33,8 +33,13 @@ public class IdentificationTable {
 	public static final String SYSTEM = "System";
 	public static final String SYSTEM_OUT = "out";
 
+	public static final ClassDecl OBJECT_DECL = new ClassDecl(new Identifier("Object", null), null,
+			new FieldDeclList(), new MethodDeclList(), null, null);
+
+	public static final ClassType OBJECT_TYPE = new ClassType("Object", null);
+
 	// Needs to be public for testing main method
-	public static final ClassDecl STRING_DECL = new ClassDecl(new Identifier("String", null), null,
+	public static final ClassDecl STRING_DECL = new ClassDecl(new Identifier("String", null), OBJECT_TYPE,
 			new FieldDeclList(), new MethodDeclList(), null, null);
 
 	public static MethodDecl PRINTLN_INT_DECL, PRINTLN_STRING_DECL;
@@ -43,6 +48,8 @@ public class IdentificationTable {
 	List<HashMap<String, Declaration>> scopes = new ArrayList<HashMap<String, Declaration>>();
 
 	public IdentificationTable() {
+		OBJECT_TYPE.declaration = OBJECT_DECL;
+		
 		openScope();
 
 		/*
@@ -66,7 +73,7 @@ public class IdentificationTable {
 		printStreamMethods.add(PRINTLN_STRING_DECL);
 
 		// class _PrintStream
-		ClassDecl printStreamDecl = new ClassDecl(new Identifier(PRINTSTREAM, null), null, new FieldDeclList(),
+		ClassDecl printStreamDecl = new ClassDecl(new Identifier(PRINTSTREAM, null), OBJECT_TYPE, new FieldDeclList(),
 				printStreamMethods, null, null);
 
 		try {
@@ -85,12 +92,13 @@ public class IdentificationTable {
 		systemFields.add(out);
 
 		// class System;
-		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), null, systemFields, new MethodDeclList(),
+		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), OBJECT_TYPE, systemFields, new MethodDeclList(),
 				null, null);
 
 		try {
 			set(systemDecl);
 			set(STRING_DECL);
+			set(OBJECT_DECL);
 		} catch (SyntaxErrorException e) {
 			// Shouldn't occur
 		}
