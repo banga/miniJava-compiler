@@ -272,6 +272,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	public Void visitAssignStmt(AssignStmt stmt, IdentificationTable table) {
 		stmt.ref.visit(this, table);
 		stmt.val.visit(this, table);
+
 		return null;
 	}
 

@@ -52,7 +52,6 @@ import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
 import miniJava.ContextualAnalyzer.IdentificationTable;
-import miniJava.ContextualAnalyzer.Utilities;
 
 public class ASTGenerateCode implements Visitor<Object, Void> {
 
@@ -655,10 +654,6 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		// Special case for array.length
 		Declaration memberDecl = ref.memberReference.getDeclaration();
 		if (memberDecl == ArrayType.LENGTH_DECL) {
-			if ((FetchType) arg != FetchType.VALUE) {
-				Utilities.reportError("Cannot modify the length field of an array", ref.memberReference.posn);
-				return null;
-			}
 			Machine.emit(Prim.pred);
 			Machine.emit(Op.LOADI);
 			return null;

@@ -239,6 +239,10 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			Utilities.reportError(stmt.ref + " cannot be resolved to a variable", stmt.posn);
 		}
 
+		if (lhs == ArrayType.LENGTH_DECL) {
+			Utilities.reportError("Cannot modify the length field of an array", stmt.ref.posn);			
+		}
+		
 		Type valType = stmt.val.visit(this, null);
 		Utilities.validateTypeEquivalence(refType, valType, false, stmt.posn);
 
