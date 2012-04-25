@@ -72,7 +72,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			for (OverloadedMethodDecl omd : cd.methodDeclList) {
 				for (MethodDecl md : omd) {
 					if (md.isStatic) {
-						if (mainMethod == null && md.type.equals(BaseType.VOID_TYPE) && !md.isPrivate
+						if (mainMethod == null && md.type.isEqualTo(BaseType.VOID_TYPE) && !md.isPrivate
 								&& md.id.spelling.equals("main") && md.parameterDeclList.size() == 1) {
 							ParameterDecl param = md.parameterDeclList.get(0);
 							if (Utilities.getTypeEquivalence(param.type, ArrayType.STRING_ARRAY_TYPE, false)) {

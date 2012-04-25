@@ -15,9 +15,19 @@ public class UnsupportedType extends ClassType {
 	public <A, R> R visit(Visitor<A, R> v, A o) {
 		return v.visitUnsupportedType(this, o);
 	}
-	
+
 	@Override
 	public String toString() {
 		return "(Unsupported) " + spelling;
+	}
+
+	@Override
+	public boolean isEqualTo(Type type) {
+		return false;
+	}
+
+	@Override
+	public boolean isEquivalentTo(Type type) {
+		return false;
 	}
 }

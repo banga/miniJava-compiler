@@ -22,4 +22,12 @@ abstract public class Type extends AST {
 
 	public TypeKind typeKind;
 	public String spelling;
+
+	// For exact matching
+	public abstract boolean isEqualTo(Type type);
+
+	// Type conversion is allowed
+	public boolean isEquivalentTo(Type type) {
+		return isEqualTo(type);
+	}
 }

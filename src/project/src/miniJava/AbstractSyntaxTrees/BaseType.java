@@ -19,7 +19,7 @@ public class BaseType extends Type {
 	public static final BaseType VOID_TYPE = new BaseType(TypeKind.VOID, "void", null);
 	public static final BaseType UNSUPPORTED_TYPE = new BaseType(TypeKind.UNSUPPORTED, "", null);
 	public static final BaseType OK_TYPE = new BaseType(TypeKind.OK, "", null);
-	
+
 	public BaseType(TypeKind t, String spelling, SourcePosition posn) {
 		super(spelling, posn);
 		typeKind = t;
@@ -34,9 +34,9 @@ public class BaseType extends Type {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof BaseType) {
-			return (typeKind == ((BaseType) obj).typeKind);
+	public boolean isEqualTo(Type type) {
+		if (type instanceof BaseType) {
+			return (typeKind == ((BaseType) type).typeKind);
 		}
 		return false;
 	}

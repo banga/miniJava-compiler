@@ -13,4 +13,8 @@ public class ErrorType extends Type {
 		return v.visitErrorType(this, o);
 	}
 
+	@Override
+	public boolean isEqualTo(Type type) {
+		return true;
+	}
 }

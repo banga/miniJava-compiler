@@ -32,9 +32,18 @@ public class ArrayType extends Type {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof ArrayType) {
-			return eltType.equals(((ArrayType) obj).eltType);
+	public boolean isEqualTo(Type type) {
+		if (type instanceof ArrayType) {
+			return eltType.isEqualTo(((ArrayType) type).eltType);
+		}
+
+		return false;
+	}
+
+	@Override
+	public boolean isEquivalentTo(Type type) {
+		if (type instanceof ArrayType) {
+			return eltType.isEquivalentTo(((ArrayType) type).eltType);
 		}
 
 		return false;

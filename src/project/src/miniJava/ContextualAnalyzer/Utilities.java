@@ -3,7 +3,6 @@ package miniJava.ContextualAnalyzer;
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.BaseType;
 import miniJava.AbstractSyntaxTrees.Declaration;
-import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.Type;
 import miniJava.AbstractSyntaxTrees.UnsupportedType;
 import miniJava.SyntacticAnalyzer.SourcePosition;
@@ -61,11 +60,11 @@ public abstract class Utilities {
 	 * @return
 	 */
 	public static boolean getTypeEquivalence(Type lhsType, Type rhsType, boolean isSymmetric) {
-		if (lhsType instanceof UnsupportedType || rhsType instanceof UnsupportedType)
-			return false;
-		if (lhsType instanceof ErrorType || rhsType instanceof ErrorType)
-			return true;
-		return lhsType.equals(rhsType) || (isSymmetric && rhsType.equals(lhsType));
+//		if (lhsType instanceof UnsupportedType || rhsType instanceof UnsupportedType)
+//			return false;
+//		if (lhsType instanceof ErrorType || rhsType instanceof ErrorType)
+//			return true;
+		return lhsType.isEquivalentTo(rhsType) || (isSymmetric && rhsType.isEquivalentTo(lhsType));
 	}
 
 	/**
