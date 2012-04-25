@@ -13,4 +13,8 @@ public class StatementType extends Type {
 		return v.visitStatementType(this, o);
 	}
 
+	@Override
+	public boolean isEqualTo(Type type) {
+		return false;
+	}
 }
