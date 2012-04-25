@@ -19,9 +19,6 @@ public class MethodDecl extends MemberDecl {
 		returnExp = e;
 	}
 
-	public void doSomething() {
-	}
-
 	/**
 	 * Determines whether method m1 and m2 have same signatures
 	 * 
