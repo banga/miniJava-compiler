@@ -38,8 +38,6 @@ public interface Visitor<ArgType, ResultType> {
 
 	public ResultType visitErrorType(ErrorType type, ArgType arg);
 
-	public ResultType visitUnsupportedType(UnsupportedType type, ArgType arg);
-
 	// Statements
 	public ResultType visitBlockStmt(BlockStmt stmt, ArgType arg);
 

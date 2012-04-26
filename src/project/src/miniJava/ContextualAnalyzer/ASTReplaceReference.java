@@ -43,7 +43,6 @@ import miniJava.AbstractSyntaxTrees.StatementType;
 import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.AbstractSyntaxTrees.ThisRef;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
-import miniJava.AbstractSyntaxTrees.UnsupportedType;
 import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
@@ -157,11 +156,6 @@ public class ASTReplaceReference implements Visitor<IdentificationTable, AST> {
 
 	@Override
 	public AST visitErrorType(ErrorType type, IdentificationTable table) {
-		return null;
-	}
-
-	@Override
-	public AST visitUnsupportedType(UnsupportedType type, IdentificationTable table) {
 		return null;
 	}
 

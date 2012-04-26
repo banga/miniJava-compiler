@@ -48,7 +48,6 @@ import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.AbstractSyntaxTrees.ThisRef;
 import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
-import miniJava.AbstractSyntaxTrees.UnsupportedType;
 import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
@@ -807,11 +806,6 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 
 	@Override
 	public Void visitErrorType(ErrorType type, Object arg) {
-		return null;
-	}
-
-	@Override
-	public Void visitUnsupportedType(UnsupportedType type, Object arg) {
 		return null;
 	}
 

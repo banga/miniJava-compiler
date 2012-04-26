@@ -6,10 +6,11 @@
 
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.ContextualAnalyzer.IdentificationTable;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class ArrayType extends Type {
-	public static final ArrayType STRING_ARRAY_TYPE = new ArrayType(UnsupportedType.STRING_TYPE, "String[]", null);
+	public static final ArrayType STRING_ARRAY_TYPE = new ArrayType(IdentificationTable.STRING_TYPE, "String[]", null);
 
 	/**
 	 * Changed Type to store spelling of type for type-checking.

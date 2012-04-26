@@ -143,11 +143,6 @@ public class ASTDisplay implements Visitor<String, Object> {
 		return null;
 	}
 
-	public Object visitUnsupportedType(UnsupportedType type, String arg) {
-		show(arg, type);
-		return null;
-	}
-
 	// Statements
 	public Object visitBlockStmt(BlockStmt stmt, String arg) {
 		show(arg, stmt);

@@ -42,6 +42,8 @@ public class IdentificationTable {
 	public static final ClassDecl STRING_DECL = new ClassDecl(new Identifier("String", null), OBJECT_TYPE,
 			new FieldDeclList(), new MethodDeclList(), null, null);
 
+	public static final ClassType STRING_TYPE = new ClassType("String", null);
+
 	public static MethodDecl PRINTLN_INT_DECL, PRINTLN_STRING_DECL;
 
 	// A stack of tables for each scope
@@ -49,6 +51,7 @@ public class IdentificationTable {
 
 	public IdentificationTable() {
 		OBJECT_TYPE.declaration = OBJECT_DECL;
+		STRING_TYPE.declaration = STRING_DECL;
 		
 		openScope();
 

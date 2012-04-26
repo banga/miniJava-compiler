@@ -50,7 +50,6 @@ import miniJava.AbstractSyntaxTrees.ThisRef;
 import miniJava.AbstractSyntaxTrees.Type;
 import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
-import miniJava.AbstractSyntaxTrees.UnsupportedType;
 import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
@@ -207,11 +206,6 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitErrorType(ErrorType type, Type arg) {
-		return null;
-	}
-
-	@Override
-	public Type visitUnsupportedType(UnsupportedType type, Type arg) {
 		return null;
 	}
 

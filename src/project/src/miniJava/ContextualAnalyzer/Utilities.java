@@ -4,7 +4,6 @@ import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.BaseType;
 import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.Type;
-import miniJava.AbstractSyntaxTrees.UnsupportedType;
 import miniJava.SyntacticAnalyzer.SourcePosition;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
@@ -38,7 +37,7 @@ public abstract class Utilities {
 			type = ((ArrayType) type).eltType;
 		}
 
-		if (type instanceof BaseType || type instanceof UnsupportedType) {
+		if (type instanceof BaseType) {
 			return;
 		}
 
@@ -75,16 +74,7 @@ public abstract class Utilities {
 	public static boolean validateTypeEquivalence(Type lhsType, Type rhsType, boolean isSymmetric, SourcePosition pos) {
 		boolean b = getTypeEquivalence(lhsType, rhsType, isSymmetric);
 		if (!b) {
-			if (lhsType instanceof UnsupportedType || rhsType instanceof UnsupportedType) {
-				if (lhsType instanceof UnsupportedType) {
-					reportError("Unsupported type " + lhsType.spelling, pos);
-				}
-				if (rhsType instanceof UnsupportedType) {
-					reportError("Unsupported type " + rhsType.spelling, pos);
-				}
-			} else {
-				reportError("Type mismatch: Cannot convert from " + rhsType + " to " + lhsType, pos);
-			}
+			reportError("Type mismatch: Cannot convert from " + rhsType + " to " + lhsType, pos);
 		}
 		return b;
 	}
