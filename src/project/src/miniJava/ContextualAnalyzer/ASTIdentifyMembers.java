@@ -18,6 +18,7 @@ import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
+import miniJava.AbstractSyntaxTrees.ForStmt;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
 import miniJava.AbstractSyntaxTrees.IndexedRef;
@@ -29,6 +30,7 @@ import miniJava.AbstractSyntaxTrees.MemberRef;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
+import miniJava.AbstractSyntaxTrees.NullLiteral;
 import miniJava.AbstractSyntaxTrees.Operator;
 import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.Package;
@@ -322,6 +324,28 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	}
 
 	@Override
+	public Void visitForStmt(ForStmt stmt, IdentificationTable table) {
+		table.openScope();
+		
+		stmt.init.visit(this, table);
+		stmt.cond.visit(this, table);
+		stmt.incr.visit(this, table);
+
+		if (stmt.body instanceof VarDeclStmt) {
+			Utilities.reportError("Variable declaration cannot be the only statement in a for statement",
+					stmt.body.posn);
+		} else if (stmt.incr instanceof VarDeclStmt) {
+			Utilities.reportError("Variable declaration cannot be an increment statement in the for loop",
+					stmt.body.posn);
+		}  
+		stmt.body.visit(this, table);
+		
+
+		table.closeScope();
+		return null;
+	}
+
+	@Override
 	public Void visitUnaryExpr(UnaryExpr expr, IdentificationTable table) {
 		expr.operator.visit(this, table);
 		expr.expr.visit(this, table);
@@ -507,6 +531,10 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 		return null;
 	}
 
+	@Override
+	public Void visitNullLiteral(NullLiteral num, IdentificationTable arg) { 
+		return null;
+	}
 	@Override
 	public Void visitBooleanLiteral(BooleanLiteral bool, IdentificationTable table) {
 		return null;

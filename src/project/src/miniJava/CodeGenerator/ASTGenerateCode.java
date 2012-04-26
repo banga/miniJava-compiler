@@ -23,6 +23,7 @@ import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
+import miniJava.AbstractSyntaxTrees.ForStmt;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
 import miniJava.AbstractSyntaxTrees.IndexedRef;
@@ -33,6 +34,7 @@ import miniJava.AbstractSyntaxTrees.MemberRef;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
+import miniJava.AbstractSyntaxTrees.NullLiteral;
 import miniJava.AbstractSyntaxTrees.Operator;
 import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.Package;
@@ -359,9 +361,9 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		stmt.methodRef.visit(this, FetchType.METHOD);
 
 		// When only called for side-effect, pop any value that may be returned
-		if(methodDecl.type.typeKind != TypeKind.VOID)
+		if (methodDecl.type.typeKind != TypeKind.VOID)
 			Machine.emit(Op.POP, 1);
-		
+
 		return null;
 	}
 
@@ -414,6 +416,33 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	}
 
 	@Override
+	public Void visitForStmt(ForStmt stmt, Object arg) {
+		/*
+		 * INIT
+		 * JUMP TEST 
+		 * LOOP: <loop body> 
+		 * TEST: <evaluate condition> 
+		 * JUMPIF 1 LOOP
+		 * <increment statement>
+		 */
+
+		stmt.init.visit(this, null);
+		// JUMP TEST
+		int testJumpAddr = Machine.nextInstrAddr();
+		Machine.emit(Op.JUMP, 0, Reg.CB, 0);
+		// LOOP:
+		int loopStartAddr = Machine.nextInstrAddr();
+		stmt.body.visit(this, null);
+		stmt.incr.visit(this, null);
+		// TEST:
+		int testStart = Machine.nextInstrAddr();
+		stmt.cond.visit(this, null);
+		Machine.emit(Op.JUMPIF, 1, Reg.CB, loopStartAddr);
+		Machine.patch(testJumpAddr, testStart);
+ 
+		return null;
+	}
+	@Override
 	public Void visitUnaryExpr(UnaryExpr expr, Object arg) {
 		expr.expr.visit(this, null);
 
@@ -431,45 +460,89 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 
 	@Override
 	public Void visitBinaryExpr(BinaryExpr expr, Object arg) {
-		expr.left.visit(this, null);
-		expr.right.visit(this, null);
 
 		switch (expr.operator.operatorType) {
 		case LANGLE:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.lt);
 			break;
 		case RANGLE:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.gt);
 			break;
 		case EQUALTO_EQUALTO:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.eq);
 			break;
 		case LANGLE_EQUALTO:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.le);
 			break;
 		case RANGLE_EQUALTO:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.ge);
 			break;
 		case BANG_EQUALTO:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.ne);
 			break;
 		case PLUS:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.add);
 			break;
 		case MINUS:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.sub);
 			break;
 		case ASTERISK:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.mult);
 			break;
 		case SLASH:
+			expr.left.visit(this, null);
+			expr.right.visit(this, null);
 			Machine.emit(Prim.div);
 			break;
 		case PIPE_PIPE:
-			Machine.emit(Prim.or);
+			expr.left.visit(this,null); 
+			int orOpLeftFalse = Machine.nextInstrAddr();
+			Machine.emit(Op.JUMPIF, 0, Reg.CB, 0);
+			
+			Machine.emit(Op.LOADL,1);
+			
+			int orJumpToEnd = Machine.nextInstrAddr();
+			Machine.emit(Op.JUMP, Reg.CB, 0);
+			
+			Machine.patch(orOpLeftFalse, Machine.nextInstrAddr());
+			expr.right.visit(this,null);
+			
+			Machine.patch(orJumpToEnd, Machine.nextInstrAddr());
 			break;
+			
 		case AMPERSAND_AMPERSAND:
-			Machine.emit(Prim.and);
+			expr.left.visit(this,null); 
+			int andOpLeftTrue = Machine.nextInstrAddr();
+			Machine.emit(Op.JUMPIF, 1, Reg.CB, 0);
+			
+			Machine.emit(Op.LOADL,0);
+			
+			int andJumpToEnd = Machine.nextInstrAddr();
+			Machine.emit(Op.JUMP, Reg.CB, 0);
+			
+			Machine.patch(andOpLeftTrue, Machine.nextInstrAddr());
+			expr.right.visit(this,null);
+			
+			Machine.patch(andJumpToEnd, Machine.nextInstrAddr());
+			
 			break;
 		}
 
@@ -507,6 +580,12 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	@Override
 	public Void visitIntLiteral(IntLiteral num, Object arg) {
 		Machine.emit(Op.LOADL, Integer.parseInt(num.spelling));
+		return null;
+	}
+
+	@Override
+	public Void visitNullLiteral(NullLiteral num, Object arg) {
+		Machine.emit(Op.LOADL, 0);
 		return null;
 	}
 

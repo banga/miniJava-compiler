@@ -22,6 +22,7 @@ import miniJava.AbstractSyntaxTrees.ErrorType;
 import miniJava.AbstractSyntaxTrees.ExprList;
 import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
+import miniJava.AbstractSyntaxTrees.ForStmt;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
 import miniJava.AbstractSyntaxTrees.IndexedRef;
@@ -33,6 +34,8 @@ import miniJava.AbstractSyntaxTrees.MemberRef;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
+import miniJava.AbstractSyntaxTrees.NullLiteral;
+import miniJava.AbstractSyntaxTrees.NullType;
 import miniJava.AbstractSyntaxTrees.Operator;
 import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.Package;
@@ -226,6 +229,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		if (stmt.initExp != null) {
 			Type expType = stmt.initExp.visit(this, null);
 			Utilities.validateTypeEquivalence(stmt.varDecl.type, expType, false, stmt.posn);
+			// TODO: CHECK NULL TYPE
 		}
 		return null;
 	}
@@ -245,6 +249,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		
 		Type valType = stmt.val.visit(this, null);
 		Utilities.validateTypeEquivalence(refType, valType, false, stmt.posn);
+		// TODO: CHECK NULL TYPE
 
 		return null;
 	}
@@ -274,6 +279,19 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	}
 
 	@Override
+	public Type visitForStmt(ForStmt stmt, Type arg) {
+		stmt.init.visit(this, null);
+		Type t = stmt.cond.visit(this, null);
+		if (t.typeKind != TypeKind.BOOLEAN) {
+			Utilities.reportError("Type mismatch: Cannot convert " + t + " to boolean", stmt.cond.posn);
+			return new ErrorType(stmt.cond.posn);
+		}
+		stmt.incr.visit(this, null);
+		stmt.body.visit(this, null);
+
+		return new StatementType(stmt.toString(), stmt.posn);
+	}
+	@Override
 	public Type visitUnaryExpr(UnaryExpr expr, Type arg) {
 		return expr.expr.visit(this, null);
 	}
@@ -289,6 +307,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 		case EQUALTO_EQUALTO:
 		case BANG_EQUALTO:
+			// TODO: CHECK NULL TYPE
 			if (!Utilities.validateTypeEquivalence(leftType, rightType, true, expr.posn)) {
 				return new ErrorType(expr.posn);
 			}
@@ -343,7 +362,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitRefExpr(RefExpr expr, Type arg) {
-		return Utilities.handleUnsupportedType(expr.ref.visit(this, null), table);
+		return expr.ref.visit(this, null);
 	}
 
 	private Type validateMethodReference(Reference methodRef, ExprList argList) {
@@ -382,7 +401,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 		methodRef.setDeclaration(methodDecl);
 
-		return Utilities.handleUnsupportedType(methodDecl.type, table);
+		return methodDecl.type;
 	}
 
 	@Override
@@ -420,7 +439,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			return new ErrorType(expr.posn);
 		}
 
-		return Utilities.handleUnsupportedType(expr.classtype, table);
+		return expr.classtype;
 	}
 
 	@Override
@@ -459,12 +478,12 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			return new ErrorType(ref.posn);
 		}
 
-		return Utilities.handleUnsupportedType(((ArrayType) refType).eltType, table);
+		return ((ArrayType) refType).eltType;
 	}
 
 	@Override
 	public Type visitIdentifier(Identifier id, Type arg) {
-		return Utilities.handleUnsupportedType(id.declaration.type, table);
+		return id.declaration.type;
 	}
 
 	@Override
@@ -476,7 +495,10 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	public Type visitIntLiteral(IntLiteral num, Type arg) {
 		return new BaseType(TypeKind.INT, "int", num.posn);
 	}
-
+	@Override
+	public Type visitNullLiteral(NullLiteral nullliteral, Type arg) {
+		return new NullType(nullliteral.posn);
+	}
 	@Override
 	public Type visitBooleanLiteral(BooleanLiteral bool, Type arg) {
 		return new BaseType(TypeKind.BOOLEAN, "boolean", bool.posn);
@@ -489,17 +511,17 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitThisRef(ThisRef ref, Type arg) {
-		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);
+		return ref.identifier.declaration.type;
 	}
 
 	@Override
 	public Type visitLocalRef(LocalRef ref, Type arg) {
-		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);
+		return ref.identifier.declaration.type;
 	}
 
 	@Override
 	public Type visitClassRef(ClassRef ref, Type arg) {
-		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);
+		return ref.identifier.declaration.type;
 	}
 
 	@Override
@@ -509,7 +531,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 	@Override
 	public Type visitMemberRef(MemberRef ref, Type arg) {
-		return Utilities.handleUnsupportedType(ref.identifier.declaration.type, table);
+		return ref.identifier.declaration.type;
 	}
 
 	@Override

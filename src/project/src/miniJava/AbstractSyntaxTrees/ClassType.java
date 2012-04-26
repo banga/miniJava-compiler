@@ -27,6 +27,8 @@ public class ClassType extends Type {
 			ClassType ct = (ClassType) type;
 
 			return declaration == ct.declaration;
+		} else if(type instanceof NullType) {
+			return true;
 		}
 
 		return false;
@@ -42,6 +44,8 @@ public class ClassType extends Type {
 
 			if (ct.declaration.superClass != null)
 				return isEquivalentTo(ct.declaration.superClass);
+		} else if(type instanceof NullType) {
+			return true;
 		}
 
 		return false;

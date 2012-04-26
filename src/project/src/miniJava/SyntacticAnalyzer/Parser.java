@@ -18,6 +18,7 @@ import miniJava.AbstractSyntaxTrees.ExprList;
 import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.FieldDeclList;
+import miniJava.AbstractSyntaxTrees.ForStmt;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IdentifierList;
 import miniJava.AbstractSyntaxTrees.IfStmt;
@@ -30,6 +31,7 @@ import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.MethodDeclList;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
+import miniJava.AbstractSyntaxTrees.NullLiteral;
 import miniJava.AbstractSyntaxTrees.Operator;
 import miniJava.AbstractSyntaxTrees.OverloadedMethodDecl;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
@@ -230,7 +232,7 @@ public class Parser {
 				expect(TokenType.SEMICOLON);
 				break;
 			} else {
-				methodStmtList.add(parseStatement());
+				methodStmtList.add(parseStatement(true));
 			}
 		}
 		expect(TokenType.RCURL);
@@ -445,7 +447,7 @@ public class Parser {
 	 * 
 	 * @throws SyntaxErrorException
 	 */
-	private Statement parseStatement() throws SyntaxErrorException {
+	private Statement parseStatement(boolean btrue) throws SyntaxErrorException {
 		// Starters(Statement) = {, int, boolean, void, this, <id>, if, while
 		Statement stmt;
 		SourcePosition stmtPos = currentToken.position;
@@ -454,7 +456,7 @@ public class Parser {
 			consume();
 			StatementList stmtList = new StatementList();
 			while (currentToken.type != TokenType.RCURL) {
-				stmtList.add(parseStatement());
+				stmtList.add(parseStatement(true));
 			}
 			expect(TokenType.RCURL);
 			stmt = new BlockStmt(stmtList, stmtPos);
@@ -467,6 +469,7 @@ public class Parser {
 			expect(TokenType.IDENTIFIER);
 			expect(TokenType.EQUALTO);
 			Expression varDeclExpr = parseExpression();
+			if (btrue)
 			expect(TokenType.SEMICOLON);
 			VarDecl varDecl1 = new VarDecl(varDeclType, varDeclId, stmtPos);
 			stmt = new VarDeclStmt(varDecl1, varDeclExpr, stmtPos);
@@ -485,6 +488,7 @@ public class Parser {
 			expect(TokenType.IDENTIFIER);
 			expect(TokenType.EQUALTO);
 			Expression intVarDeclExpr = parseExpression();
+			if (btrue)
 			expect(TokenType.SEMICOLON);
 			VarDecl varDecl2 = new VarDecl(intVarDeclType, intVarDeclId, stmtPos);
 			stmt = new VarDeclStmt(varDecl2, intVarDeclExpr, stmtPos);
@@ -501,6 +505,7 @@ public class Parser {
 			case EQUALTO:
 				consume();
 				Expression thisRefExpr1 = parseExpression();
+				if (btrue)
 				expect(TokenType.SEMICOLON);
 				stmt = new AssignStmt(thisRef, thisRefExpr1, stmtPos);
 				break;
@@ -513,6 +518,7 @@ public class Parser {
 				expect(TokenType.RSQUARE);
 				expect(TokenType.EQUALTO);
 				Expression thisRefExpr3 = parseExpression();
+				if (btrue)
 				expect(TokenType.SEMICOLON);
 				stmt = new AssignStmt(thisRef, thisRefExpr3, stmtPos);
 				break;
@@ -525,6 +531,7 @@ public class Parser {
 					thisRefExprList = parseArgumentList();
 				}
 				expect(TokenType.RPAREN);
+				if (btrue)
 				expect(TokenType.SEMICOLON);
 				stmt = new CallStmt(thisRef, thisRefExprList, stmtPos);
 				break;
@@ -544,6 +551,7 @@ public class Parser {
 				// id = Expression; //AssignStmt
 				consume();
 				Expression idExpr1 = parseExpression();
+				if (btrue)
 				expect(TokenType.SEMICOLON);
 				stmt = new AssignStmt(idRef1, idExpr1, stmtPos);
 				break;
@@ -561,6 +569,7 @@ public class Parser {
 					VarDecl idVarDecl = new VarDecl(idArrType, id2, stmtPos);
 					expect(TokenType.EQUALTO);
 					Expression idExpr2 = parseExpression();
+					if (btrue)
 					expect(TokenType.SEMICOLON);
 					stmt = new VarDeclStmt(idVarDecl, idExpr2, stmtPos);
 				} else {
@@ -570,6 +579,7 @@ public class Parser {
 					expect(TokenType.RSQUARE);
 					expect(TokenType.EQUALTO);
 					Expression idExpr4 = parseExpression();
+					if (btrue)
 					expect(TokenType.SEMICOLON);
 					stmt = new AssignStmt(idRef1, idExpr4, stmtPos);
 				}
@@ -586,6 +596,7 @@ public class Parser {
 					// id(.id)* = Expression //AssignStmt
 					consume();
 					idRefExpr1 = parseExpression();
+					if (btrue)
 					expect(TokenType.SEMICOLON);
 					stmt = new AssignStmt(idRef1, idRefExpr1, stmtPos);
 					break;
@@ -598,6 +609,7 @@ public class Parser {
 					expect(TokenType.RSQUARE);
 					expect(TokenType.EQUALTO);
 					Expression idRefExpr2 = parseExpression();
+					if (btrue)
 					expect(TokenType.SEMICOLON);
 					stmt = new AssignStmt(idRef1, idRefExpr2, stmtPos);
 					break;
@@ -610,6 +622,7 @@ public class Parser {
 						idRefExprList = parseArgumentList();
 					}
 					expect(TokenType.RPAREN);
+					if (btrue)
 					expect(TokenType.SEMICOLON);
 					stmt = new CallStmt(idRef1, idRefExprList, stmtPos);
 					break;
@@ -626,6 +639,7 @@ public class Parser {
 				consume();
 				expect(TokenType.EQUALTO);
 				Expression idIdExpr1 = parseExpression();
+				if (btrue)
 				expect(TokenType.SEMICOLON);
 				VarDecl idIdVarDecl = new VarDecl(id1Class, id2, stmtPos);
 				stmt = new VarDeclStmt(idIdVarDecl, idIdExpr1, stmtPos);
@@ -639,6 +653,7 @@ public class Parser {
 					idIdExprList = parseArgumentList();
 				}
 				expect(TokenType.RPAREN);
+				if (btrue)
 				expect(TokenType.SEMICOLON);
 				stmt = new CallStmt(idRef1, idIdExprList, stmtPos);
 				break;
@@ -653,21 +668,32 @@ public class Parser {
 			expect(TokenType.LPAREN);
 			Expression ifExpr = parseExpression();
 			expect(TokenType.RPAREN);
-			Statement ifBlock = parseStatement();
+			Statement ifBlock = parseStatement(true);
 			if (currentToken.type == TokenType.ELSE) {
 				consume();
-				stmt = new IfStmt(ifExpr, ifBlock, parseStatement(), stmtPos);
+				stmt = new IfStmt(ifExpr, ifBlock, parseStatement(true), stmtPos);
 			} else {
 				stmt = new IfStmt(ifExpr, ifBlock, stmtPos);
 			}
 			break;
 
+		case FOR:
+			consume();
+			expect(TokenType.LPAREN); 
+			Statement initStmt = parseStatement(true); 
+			Expression condExpr = parseExpression();
+			expect(TokenType.SEMICOLON);
+			Statement incrStmt = parseStatement(false); 
+			expect(TokenType.RPAREN);
+			Statement bodyStmt = parseStatement(true); 
+			stmt = new ForStmt(initStmt,condExpr,incrStmt,bodyStmt,stmtPos);
+			break;
 		case WHILE:
 			consume();
 			expect(TokenType.LPAREN);
 			Expression whileExpr = parseExpression();
 			expect(TokenType.RPAREN);
-			stmt = new WhileStmt(whileExpr, parseStatement(), stmtPos);
+			stmt = new WhileStmt(whileExpr, parseStatement(true), stmtPos);
 			break;
 
 		default:
@@ -912,6 +938,7 @@ public class Parser {
 		case NUMBER:
 		case TRUE:
 		case FALSE:
+		case NULL:
 		case STRING:
 			Literal literal = null;
 			switch (currentToken.type) {
@@ -921,6 +948,9 @@ public class Parser {
 			case TRUE:
 			case FALSE:
 				literal = new BooleanLiteral(currentToken.spelling, currentToken.position);
+				break;
+			case NULL:
+				literal = new NullLiteral(currentToken.spelling, currentToken.position);
 				break;
 			case STRING:
 				literal = new StringLiteral(currentToken.spelling, currentToken.position);

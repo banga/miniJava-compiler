@@ -53,6 +53,7 @@ public interface Visitor<ArgType, ResultType> {
 
 	public ResultType visitWhileStmt(WhileStmt stmt, ArgType arg);
 
+	public ResultType visitForStmt(ForStmt stmt, ArgType arg);
 	// Expressions
 	public ResultType visitUnaryExpr(UnaryExpr expr, ArgType arg);
 
@@ -91,6 +92,8 @@ public interface Visitor<ArgType, ResultType> {
 	public ResultType visitOperator(Operator op, ArgType arg);
 
 	public ResultType visitIntLiteral(IntLiteral num, ArgType arg);
+	
+	public ResultType visitNullLiteral(NullLiteral num, ArgType arg);
 
 	public ResultType visitBooleanLiteral(BooleanLiteral bool, ArgType arg);
 

@@ -203,6 +203,16 @@ public class ASTDisplay implements Visitor<String, Object> {
 		return null;
 	}
 
+	@Override
+	public Object visitForStmt(ForStmt stmt, String arg) {
+		show (arg, stmt);
+		stmt.init.visit(this, indent(arg));
+		stmt.cond.visit(this, indent(arg));
+		stmt.incr.visit(this, indent(arg));
+		stmt.body.visit(this, indent(arg));
+		return null;
+	}
+
 	// Expressions
 	public Object visitUnaryExpr(UnaryExpr expr, String arg) {
 		show(arg, expr);
@@ -371,4 +381,12 @@ public class ASTDisplay implements Visitor<String, Object> {
 		show(arg, "\"" + str.spelling + "\" " + str.toString());
 		return null;
 	}
+
+	@Override
+	public Object visitNullLiteral(NullLiteral nullliteral, String arg) {
+		show(arg, "\"" + nullliteral.spelling + "\" " + nullliteral.toString()); 
+		return null;
+	}
+
+
 }

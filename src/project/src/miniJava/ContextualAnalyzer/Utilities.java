@@ -60,11 +60,6 @@ public abstract class Utilities {
 	 * @return
 	 */
 	public static boolean getTypeEquivalence(Type lhsType, Type rhsType, boolean isSymmetric) {
-		// if (lhsType instanceof UnsupportedType || rhsType instanceof
-		// UnsupportedType)
-		// return false;
-		// if (lhsType instanceof ErrorType || rhsType instanceof ErrorType)
-		// return true;
 		return lhsType.isEquivalentTo(rhsType) || (isSymmetric && rhsType.isEquivalentTo(lhsType));
 	}
 
@@ -92,15 +87,6 @@ public abstract class Utilities {
 			}
 		}
 		return b;
-	}
-
-	public static Type handleUnsupportedType(Type type, IdentificationTable table) {
-		// if (type instanceof ClassType && ((ClassType)
-		// type).spelling.equals("String")
-		// && table.getScope("String") == IdentificationTable.PREDEFINED_SCOPE)
-		// return new UnsupportedType(IdentificationTable.STRING_DECL,
-		// type.posn);
-		return type;
 	}
 
 	public static void reportError(String msg, SourcePosition pos) {

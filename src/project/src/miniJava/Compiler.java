@@ -21,6 +21,8 @@ import miniJava.SyntacticAnalyzer.SourcePosition;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
 public class Compiler {
+	private static boolean isDebug = true;
+
 	private static void printOffendingLine(String fileName, SourcePosition position) {
 		try {
 			BufferedReader in = new BufferedReader(new FileReader(fileName));
@@ -49,31 +51,35 @@ public class Compiler {
 		/* write code as an object file */
 		String objectCodeFileName = prefix + ".mJAM";
 		ObjectFile objF = new ObjectFile(objectCodeFileName);
-		System.out.print("Writing object code file " + objectCodeFileName + " ... ");
+		if (isDebug) {
+			System.out.print("Writing object code file " + objectCodeFileName + " ... ");
+		}
 		if (objF.write()) {
-			System.out.println("FAILED!");
+			if (isDebug)
+				System.out.println("FAILED!");
 			return;
 		} else {
-			System.out.println("SUCCEEDED");
+			if (isDebug)
+				System.out.println("SUCCEEDED");
 		}
-
-		// TODO: Comment out everything below this line
 
 		/* create asm file using disassembler */
-		System.out.print("Writing assembly file ... ");
-		Disassembler d = new Disassembler(objectCodeFileName);
-		if (d.disassemble()) {
-			System.out.println("FAILED!");
-			return;
-		} else {
-			System.out.println("SUCCEEDED");
+		if (isDebug) {
+			System.out.print("Writing assembly file ... ");
+			Disassembler d = new Disassembler(objectCodeFileName);
+			if (d.disassemble()) {
+				System.out.println("FAILED!");
+				return;
+			} else {
+				System.out.println("SUCCEEDED");
+			}
+
+			/* run code */
+			System.out.println("Running code ... ");
+			Interpreter.interpret(objectCodeFileName);
+
+			System.out.println("*** mJAM execution completed");
 		}
-
-		/* run code */
-		System.out.println("Running code ... ");
-		Interpreter.interpret(objectCodeFileName);
-
-		System.out.println("*** mJAM execution completed");
 	}
 
 	public static void main(String[] args) {

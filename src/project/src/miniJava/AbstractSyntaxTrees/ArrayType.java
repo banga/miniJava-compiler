@@ -35,6 +35,8 @@ public class ArrayType extends Type {
 	public boolean isEqualTo(Type type) {
 		if (type instanceof ArrayType) {
 			return eltType.isEqualTo(((ArrayType) type).eltType);
+		} else if(type instanceof NullType) {
+			return true;
 		}
 
 		return false;
@@ -44,6 +46,8 @@ public class ArrayType extends Type {
 	public boolean isEquivalentTo(Type type) {
 		if (type instanceof ArrayType) {
 			return eltType.isEquivalentTo(((ArrayType) type).eltType);
+		} else if(type instanceof NullType) {
+			return true;
 		}
 
 		return false;
