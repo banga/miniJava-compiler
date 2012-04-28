@@ -117,6 +117,10 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	public Void visitPackage(Package prog, Object arg) {
 		Machine.initCodeGen();
 
+		// Insert the predefined Object class so code for its members is
+		// generated
+		prog.classDeclList.add(IdentificationTable.OBJECT_DECL);
+
 		// Pre-calculate class object displacements, field displacements etc.
 		classObjectDisplacement = 0;
 		for (ClassDecl cd : prog.classDeclList) {
@@ -124,17 +128,13 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			cd.populateRuntimeEntities();
 		}
 
-		// Jump to class object creation
+		// Generate code to jump to class object creation
 		int classObjectJumpAddress = Machine.nextInstrAddr();
 		Machine.emit(Op.JUMP, Reg.CB, 0);
 
 		// Generate code for all methods
 		for (ClassDecl cd : prog.classDeclList)
 			cd.visit(this, null);
-
-		// Patch method calls
-		for (Integer addr : methodDisplacements.keySet())
-			Machine.patch(addr, methodDisplacements.get(addr).displacement);
 
 		// Patch jump to class object creation
 		Machine.patch(classObjectJumpAddress, Machine.nextInstrAddr());
@@ -149,6 +149,11 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		Machine.emit(Op.LOADL, -1);
 		Machine.emit(Op.CALL, Reg.CB, ((MethodDecl) arg).runtimeEntity.displacement);
 		Machine.emit(Op.HALT, 0, 0, 0);
+
+		// Patch method calls
+		for (Integer addr : methodDisplacements.keySet()) {
+			Machine.patch(addr, methodDisplacements.get(addr).displacement);
+		}
 
 		return null;
 	}
@@ -417,12 +422,8 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 	@Override
 	public Void visitForStmt(ForStmt stmt, Object arg) {
 		/*
-		 * INIT
-		 * JUMP TEST 
-		 * LOOP: <loop body> 
-		 * TEST: <evaluate condition> 
-		 * JUMPIF 1 LOOP
-		 * <increment statement>
+		 * INIT JUMP TEST LOOP: <loop body> TEST: <evaluate condition> JUMPIF 1
+		 * LOOP <increment statement>
 		 */
 
 		stmt.init.visit(this, null);
@@ -438,9 +439,10 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		stmt.cond.visit(this, null);
 		Machine.emit(Op.JUMPIF, 1, Reg.CB, loopStartAddr);
 		Machine.patch(testJumpAddr, testStart);
- 
+
 		return null;
 	}
+
 	@Override
 	public Void visitUnaryExpr(UnaryExpr expr, Object arg) {
 		expr.expr.visit(this, null);
@@ -512,36 +514,36 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 			Machine.emit(Prim.div);
 			break;
 		case PIPE_PIPE:
-			expr.left.visit(this,null); 
+			expr.left.visit(this, null);
 			int orOpLeftFalse = Machine.nextInstrAddr();
 			Machine.emit(Op.JUMPIF, 0, Reg.CB, 0);
-			
-			Machine.emit(Op.LOADL,1);
-			
+
+			Machine.emit(Op.LOADL, 1);
+
 			int orJumpToEnd = Machine.nextInstrAddr();
 			Machine.emit(Op.JUMP, Reg.CB, 0);
-			
+
 			Machine.patch(orOpLeftFalse, Machine.nextInstrAddr());
-			expr.right.visit(this,null);
-			
+			expr.right.visit(this, null);
+
 			Machine.patch(orJumpToEnd, Machine.nextInstrAddr());
 			break;
-			
+
 		case AMPERSAND_AMPERSAND:
-			expr.left.visit(this,null); 
+			expr.left.visit(this, null);
 			int andOpLeftTrue = Machine.nextInstrAddr();
 			Machine.emit(Op.JUMPIF, 1, Reg.CB, 0);
-			
-			Machine.emit(Op.LOADL,0);
-			
+
+			Machine.emit(Op.LOADL, 0);
+
 			int andJumpToEnd = Machine.nextInstrAddr();
 			Machine.emit(Op.JUMP, Reg.CB, 0);
-			
+
 			Machine.patch(andOpLeftTrue, Machine.nextInstrAddr());
-			expr.right.visit(this,null);
-			
+			expr.right.visit(this, null);
+
 			Machine.patch(andJumpToEnd, Machine.nextInstrAddr());
-			
+
 			break;
 		}
 
@@ -607,6 +609,23 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		return null;
 	}
 
+	/**
+	 * Emits code that calls initializer functions for inherited fields before
+	 * initializing the current class's fields
+	 * 
+	 * @param classDecl
+	 */
+	private void emitObjectInitializerCalls(ClassDecl classDecl) {
+		if (classDecl.superClass != null)
+			emitObjectInitializerCalls(classDecl.superClass.declaration);
+
+		Machine.emit(Op.LOAD, Reg.ST, -1); // Load object's address
+
+		int fieldInitCallAddr = Machine.nextInstrAddr();
+		Machine.emit(Op.CALL, Reg.CB, 0);
+		methodDisplacements.put(fieldInitCallAddr, classDecl.fieldInitializerEntity);
+	}
+
 	@Override
 	public Void visitNewObjectExpr(NewObjectExpr expr, Object arg) {
 		ClassDecl classDecl = expr.classtype.declaration;
@@ -615,12 +634,8 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		Machine.emit(Op.LOADL, classDecl.runtimeEntity.size);
 		Machine.emit(Prim.newobj);
 
-		/* Call the initializer function */
-		Machine.emit(Op.LOAD, Reg.ST, -1); // Load object's address
-
-		int fieldInitCallAddr = Machine.nextInstrAddr();
-		Machine.emit(Op.CALL, Reg.CB, 0);
-		methodDisplacements.put(fieldInitCallAddr, classDecl.fieldInitializerEntity);
+		/* Call the initializer functions */
+		emitObjectInitializerCalls(classDecl);
 
 		/* Call the matching constructor */
 		for (Expression e : expr.argList)
@@ -714,7 +729,7 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 
 			// Do an indirect call only if the method can be overridden
 			if (methodDecl.runtimeEntity.isOverridden) {
-				Machine.emit(Op.CALLD, methodDecl.parentClass.classObject.indexOf(methodDecl));
+				Machine.emit(Op.CALLD, methodDecl.currentClass.classObject.indexOf(methodDecl));
 			} else {
 				int callInstrAddr = Machine.nextInstrAddr();
 				Machine.emit(Op.CALL, Reg.CB, 0);

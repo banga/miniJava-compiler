@@ -320,7 +320,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	@Override
 	public Void visitForStmt(ForStmt stmt, IdentificationTable table) {
 		table.openScope();
-		
+
 		stmt.init.visit(this, table);
 		stmt.cond.visit(this, table);
 		stmt.incr.visit(this, table);
@@ -331,9 +331,8 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 		} else if (stmt.incr instanceof VarDeclStmt) {
 			Utilities.reportError("Variable declaration cannot be an increment statement in the for loop",
 					stmt.body.posn);
-		}  
+		}
 		stmt.body.visit(this, table);
-		
 
 		table.closeScope();
 		return null;
@@ -423,8 +422,14 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 			int scope = table.linkDeclaration(id);
 
 			if (scope == IdentificationTable.INVALID_SCOPE) {
-				Utilities.reportError("Undeclared identifier '" + id + "'", id.posn);
-				return null;
+				// Look for fields from super classes that might be in scope here
+				// TODO: check for static fields here if they are implemented
+				id.declaration = currentClass.getFieldDeclaration(id, true, false);
+
+				if (id.declaration == null) {
+					Utilities.reportError("Undeclared identifier '" + id + "'", id.posn);
+					return null;
+				}
 			}
 
 			if (currentMethod != null) {
@@ -526,9 +531,10 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 	}
 
 	@Override
-	public Void visitNullLiteral(NullLiteral num, IdentificationTable arg) { 
+	public Void visitNullLiteral(NullLiteral num, IdentificationTable arg) {
 		return null;
 	}
+
 	@Override
 	public Void visitBooleanLiteral(BooleanLiteral bool, IdentificationTable table) {
 		return null;
