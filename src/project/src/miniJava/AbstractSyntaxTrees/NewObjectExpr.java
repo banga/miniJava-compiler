@@ -5,6 +5,8 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import java.util.List;
+
 import miniJava.SyntacticAnalyzer.SourcePosition;
 
 public class NewObjectExpr extends NewExpr {
@@ -20,5 +22,5 @@ public class NewObjectExpr extends NewExpr {
 
 	public ClassType classtype;
 	public ExprList argList;
-	public MethodDecl matchedConstructor;
+	public List<MethodDecl> matchedConstructors;
 }

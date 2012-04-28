@@ -637,7 +637,18 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 		/* Call the initializer functions */
 		emitObjectInitializerCalls(classDecl);
 
+		/* Call the super class default constructors */
+		for(int i = 0; i < expr.matchedConstructors.size()-1; i++) {
+			Machine.emit(Op.LOAD, Reg.ST, -1);
+			
+			int callInstrAddr = Machine.nextInstrAddr();
+			Machine.emit(Op.CALL, Reg.CB, 0);
+			methodDisplacements.put(callInstrAddr, expr.matchedConstructors.get(i).runtimeEntity);
+		}
+
 		/* Call the matching constructor */
+		MethodDecl matchingConstructor = expr.matchedConstructors.get(expr.matchedConstructors.size() - 1);
+
 		for (Expression e : expr.argList)
 			e.visit(this, null);
 
@@ -645,7 +656,7 @@ public class ASTGenerateCode implements Visitor<Object, Void> {
 
 		int callInstrAddr = Machine.nextInstrAddr();
 		Machine.emit(Op.CALL, Reg.CB, 0);
-		methodDisplacements.put(callInstrAddr, expr.matchedConstructor.runtimeEntity);
+		methodDisplacements.put(callInstrAddr, matchingConstructor.runtimeEntity);
 
 		return null;
 	}

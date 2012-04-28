@@ -238,9 +238,9 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		}
 
 		if (lhs == ArrayType.LENGTH_DECL) {
-			Utilities.reportError("Cannot modify the length field of an array", stmt.ref.posn);			
+			Utilities.reportError("Cannot modify the length field of an array", stmt.ref.posn);
 		}
-		
+
 		Type valType = stmt.val.visit(this, null);
 		Utilities.validateTypeEquivalence(refType, valType, false, stmt.posn);
 		// TODO: CHECK NULL TYPE
@@ -285,6 +285,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 
 		return new StatementType(stmt.toString(), stmt.posn);
 	}
+
 	@Override
 	public Type visitUnaryExpr(UnaryExpr expr, Type arg) {
 		return expr.expr.visit(this, null);
@@ -420,17 +421,41 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 		for (Expression e : expr.argList)
 			argTypes.add(e.visit(this, null));
 
-		expr.matchedConstructor = expr.classtype.declaration.constructorDecl.getMatchingMethodDecl(argTypes);
+		expr.matchedConstructors = new ArrayList<MethodDecl>();
 
-		if (expr.matchedConstructor == null) {
-			Utilities.reportError("No matching constructor for class " + expr.classtype.declaration.id, expr.posn);
+		ClassDecl classDecl = expr.classtype.declaration;
+		MethodDecl matchedConstructor = classDecl.constructorDecl.getMatchingMethodDecl(argTypes);
+
+		if (matchedConstructor == null) {
+			Utilities.reportError("No matching constructor for class " + classDecl.id, expr.posn);
 			return new ErrorType(expr.posn);
 		}
 
-		if (expr.matchedConstructor.isPrivate && currentClass != expr.matchedConstructor.currentClass) {
-			Utilities.reportError("Cannot access the matching constructor for " + expr.classtype.declaration.id,
-					expr.posn);
+		if (matchedConstructor.isPrivate && currentClass != matchedConstructor.currentClass) {
+			Utilities.reportError("Cannot access the matching constructor for " + classDecl.id, expr.posn);
 			return new ErrorType(expr.posn);
+		}
+
+		expr.matchedConstructors.add(matchedConstructor);
+
+		// Add default constructors for super classes
+		argTypes = new ArrayList<Type>();
+		while (classDecl.superClass != null) {
+			classDecl = classDecl.superClass.declaration;
+
+			matchedConstructor = classDecl.constructorDecl.getMatchingMethodDecl(argTypes);
+
+			if (matchedConstructor == null) {
+				Utilities.reportError("No default constructor for class " + classDecl.id, expr.posn);
+				return new ErrorType(expr.posn);
+			}
+
+			if (matchedConstructor.isPrivate && currentClass != matchedConstructor.currentClass) {
+				Utilities.reportError("Cannot access the default constructor for " + classDecl.id, expr.posn);
+				return new ErrorType(expr.posn);
+			}
+
+			expr.matchedConstructors.add(0, matchedConstructor);
 		}
 
 		return expr.classtype;
@@ -489,10 +514,12 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 	public Type visitIntLiteral(IntLiteral num, Type arg) {
 		return new BaseType(TypeKind.INT, "int", num.posn);
 	}
+
 	@Override
 	public Type visitNullLiteral(NullLiteral nullliteral, Type arg) {
 		return new NullType(nullliteral.posn);
 	}
+
 	@Override
 	public Type visitBooleanLiteral(BooleanLiteral bool, Type arg) {
 		return new BaseType(TypeKind.BOOLEAN, "boolean", bool.posn);

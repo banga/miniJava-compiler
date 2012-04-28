@@ -169,7 +169,7 @@ public class Parser {
 			// Parse a constructor
 			if (currentToken.type == TokenType.LPAREN && memberDecl.type.spelling.equals(classId.spelling)) {
 				if (memberDecl.isStatic)
-					throw new SyntaxErrorException("Invalid modifiers on constructor " + currentToken);
+					throw new SyntaxErrorException("Invalid modifiers on constructor");
 
 				memberDecl = new FieldDecl(memberDecl.isPrivate, false, BaseType.VOID_TYPE, new Identifier(
 						memberDecl.type.spelling, memberDecl.type.posn), memberDecl.posn);
