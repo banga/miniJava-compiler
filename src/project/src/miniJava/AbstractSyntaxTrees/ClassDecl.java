@@ -35,11 +35,11 @@ public class ClassDecl extends Declaration {
 		// Set parent class for all methods
 		for (OverloadedMethodDecl omd : mdl)
 			for (MethodDecl md : omd)
-				md.parentClass = this;
+				md.currentClass = this;
 
 		// Set parent class for all constructors
 		for (MethodDecl md : constructorDecl)
-			md.parentClass = this;
+			md.currentClass = this;
 	}
 
 	public <A, R> R visit(Visitor<A, R> v, A o) {
@@ -97,7 +97,7 @@ public class ClassDecl extends Declaration {
 		}
 
 		if (superClass != null)
-			return superClass.declaration.getFieldDeclaration(fieldID, hasPrivateAccess, isStaticReference);
+			return superClass.declaration.getFieldDeclaration(fieldID, false, isStaticReference);
 
 		return null;
 	}
@@ -118,7 +118,7 @@ public class ClassDecl extends Declaration {
 		}
 
 		if (superClass != null)
-			return superClass.declaration.getMethodDeclaration(methodID, hasPrivateAccess, isStaticReference);
+			return superClass.declaration.getMethodDeclaration(methodID, false, isStaticReference);
 
 		return null;
 	}
@@ -214,7 +214,7 @@ public class ClassDecl extends Declaration {
 	public MethodDeclList methodDeclList;
 	public OverloadedMethodDecl constructorDecl;
 	public ClassRuntimeEntity runtimeEntity = new ClassRuntimeEntity(-1);
-	public MethodRuntimeEntity fieldInitializerEntity = new MethodRuntimeEntity(0);
+	public MethodRuntimeEntity fieldInitializerEntity = new MethodRuntimeEntity(-1);
 
 	/* Inheritance */
 	public ClassType superClass;
