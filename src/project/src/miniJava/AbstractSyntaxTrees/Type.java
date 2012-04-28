@@ -23,10 +23,21 @@ abstract public class Type extends AST {
 	public TypeKind typeKind;
 	public String spelling;
 
-	// For exact matching
+	/**
+	 * Returns true if given Type exactly matches current Type
+	 * 
+	 * @param type
+	 * @return
+	 */
 	public abstract boolean isEqualTo(Type type);
 
-	// Type conversion is allowed
+	/**
+	 * Returns true if given Type is the same Type as current Type or given Type
+	 * is descendent of current Type
+	 * 
+	 * @param type
+	 * @return
+	 */
 	public boolean isEquivalentTo(Type type) {
 		return isEqualTo(type);
 	}
