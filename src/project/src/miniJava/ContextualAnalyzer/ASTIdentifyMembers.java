@@ -422,7 +422,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 			int scope = table.linkDeclaration(id);
 
 			if (scope == IdentificationTable.INVALID_SCOPE) {
-				// Look for fields from super classes that might be in scope here
+				// Look for fields from super classes that might be in scope
 				// TODO: check for static fields here if they are implemented
 				id.declaration = currentClass.getFieldDeclaration(id, true, false);
 
@@ -430,6 +430,12 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 					Utilities.reportError("Undeclared identifier '" + id + "'", id.posn);
 					return null;
 				}
+			} else if (scope < IdentificationTable.MEMBER_SCOPE) {
+				// Hack to comply with scope rules
+				FieldDecl fd = currentClass.getFieldDeclaration(id, true, false);
+
+				if (fd != null)
+					id.declaration = fd;
 			}
 
 			if (currentMethod != null) {
