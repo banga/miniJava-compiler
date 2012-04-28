@@ -386,7 +386,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			return new ErrorType(methodRef.posn);
 		}
 
-		if (methodDecl.isPrivate && currentClass != methodDecl.parentClass) {
+		if (methodDecl.isPrivate && currentClass != methodDecl.currentClass) {
 			// Static methods cannot be invoked
 			Utilities.reportError("Private method " + methodDecl.id.spelling + " is not accessible here",
 					methodRef.posn);
@@ -427,7 +427,7 @@ public class ASTTypeCheck implements Visitor<Type, Type> {
 			return new ErrorType(expr.posn);
 		}
 
-		if (expr.matchedConstructor.isPrivate && currentClass != expr.matchedConstructor.parentClass) {
+		if (expr.matchedConstructor.isPrivate && currentClass != expr.matchedConstructor.currentClass) {
 			Utilities.reportError("Cannot access the matching constructor for " + expr.classtype.declaration.id,
 					expr.posn);
 			return new ErrorType(expr.posn);
