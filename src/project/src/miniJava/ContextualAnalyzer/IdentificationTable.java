@@ -9,13 +9,17 @@ import miniJava.AbstractSyntaxTrees.BaseType;
 import miniJava.AbstractSyntaxTrees.ClassDecl;
 import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.Declaration;
+import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.FieldDeclList;
 import miniJava.AbstractSyntaxTrees.Identifier;
+import miniJava.AbstractSyntaxTrees.LiteralExpr;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.MethodDeclList;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.ParameterDeclList;
+import miniJava.AbstractSyntaxTrees.StatementList;
+import miniJava.AbstractSyntaxTrees.StringLiteral;
 import miniJava.SyntacticAnalyzer.SyntaxErrorException;
 
 /**
@@ -33,8 +37,7 @@ public class IdentificationTable {
 	public static final String SYSTEM = "System";
 	public static final String SYSTEM_OUT = "out";
 
-	public static final ClassDecl OBJECT_DECL = new ClassDecl(new Identifier("Object", null), null,
-			new FieldDeclList(), new MethodDeclList(), null, null);
+	public static ClassDecl OBJECT_DECL;
 
 	public static final ClassType OBJECT_TYPE = new ClassType("Object", null);
 
@@ -52,7 +55,17 @@ public class IdentificationTable {
 	public IdentificationTable() {
 		OBJECT_TYPE.declaration = OBJECT_DECL;
 		STRING_TYPE.declaration = STRING_DECL;
-		
+
+		/* Object class */
+		FieldDecl toStringFieldDecl = new FieldDecl(false, false, STRING_TYPE, new Identifier("toString", null), null);
+		Expression returnExpr = new LiteralExpr(new StringLiteral("Object", null), null);
+		MethodDecl toStringMethod = new MethodDecl(toStringFieldDecl, new ParameterDeclList(), new StatementList(),
+				returnExpr, null);
+
+		MethodDeclList objectMethods = new MethodDeclList();
+		objectMethods.add(toStringMethod);
+		OBJECT_DECL = new ClassDecl(new Identifier("Object", null), null, new FieldDeclList(), objectMethods, null, null);
+
 		openScope();
 
 		/*
@@ -95,8 +108,8 @@ public class IdentificationTable {
 		systemFields.add(out);
 
 		// class System;
-		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), OBJECT_TYPE, systemFields, new MethodDeclList(),
-				null, null);
+		ClassDecl systemDecl = new ClassDecl(new Identifier(SYSTEM, null), OBJECT_TYPE, systemFields,
+				new MethodDeclList(), null, null);
 
 		try {
 			set(systemDecl);
