@@ -424,7 +424,7 @@ public class ASTIdentifyMembers implements Visitor<IdentificationTable, Void> {
 			if (scope == IdentificationTable.INVALID_SCOPE) {
 				// Look for fields from super classes that might be in scope
 				// TODO: check for static fields here if they are implemented
-				id.declaration = currentClass.getFieldDeclaration(id, true, false);
+				id.declaration = currentClass.getMemberDeclaration(id, true, false);
 
 				if (id.declaration == null) {
 					Utilities.reportError("Undeclared identifier '" + id + "'", id.posn);
